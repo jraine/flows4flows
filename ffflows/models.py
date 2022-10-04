@@ -36,12 +36,73 @@ class DenseNet(nn.Module):
             x = layer(x)
         return x
 
-class JointBaseDist(nn.module):
-    '''Envelope class for flow4flow with joint base distribution'''
-    def __init__(self,feature_dim, condition_dim, top_flow, base_flow, *args, **kwargs):
-        super(self,JointBaseDist).__init__(*args,**kwargs)
+class FlowForFlowModel(nn.module):
+    '''Driving class for a flow for flow model.
+    Holds the top flow as well as base distributions, and handles training steps for forward and backward.
+    '''
+    def __init__(self):
+        super(self,FlowForFlowModel).__init__()
+        self.topflow = None
+        self.base_flow_fwd = None
+        self.base_flow_inv = None
+        self.configured = 0b000
 
-class SeparateBaseDist(nn.module):
-    '''Envelope class for flow4flow with separate base distributions'''
-    def __init__(self, feature_dim, condition_dim, top_flow, base_flow_fwd, base_flow_inv, *args, **kwargs):
-        super(self,SeparateBaseDist).__init__(*args,**kwargs)
+    def setTopFlow(self, topflow):
+        '''Set the top flow architecture'''
+        self.topflow = topflow
+        self.configured |= 1
+
+    def setBaseDist(self, base_fwd, base_inv=None):
+        self.base_flow_fwd = base_fwd
+        self.configured |= 1<<1
+        if base_inv is not None:
+            self.base_flow_inv = base_inv
+        else:
+            self.base_flow_inv = base_fwd
+        self.configured |= 1<<2
+    
+    def transform_and_log_prob(self, x, context=None, inverse=False):
+        assert self.configured & 0b111, "Must have top flow and base flows configured"
+        if context is None:
+            context_l,context_r = (None, None)
+        else:
+            context_l,context_r = context
+        
+        y, logabsdet = self.transform(x,context,inverse)
+        if inverse:
+            logprob = self.base_flow_inv._log_prob(y, context_l)
+        else:
+            logprob = self.base_flow_fwd._log_prob(y, context_r)
+        return logprob - logabsdet
+    
+    def transform(self, x, context=None, inverse=False):
+        assert self.configured & 0b001, "Must have top flow configured"
+        # context_l,context_r = context
+        if inverse:
+            y, logabsdet = self.topflow._transform.inverse(x, context=context)
+        else:
+            y, logabsdet = self.topflow._transform(x, context=context)
+        
+        return y, logabsdet
+
+    def _log_prob(self, x, context=None, inverse=False):
+        _, logprob = self.transform_and_log_prob(x, context=context, inverse=inverse)
+        return logprob
+
+
+    def sample(self, num_samples, context, inverse=False):
+        assert self.configured & 0b111, "Must have top flow and base flows configured"
+        if context is None:
+            context_l,context_r = (None, None)
+        else:
+            context_l,context_r = context
+        if inverse:
+            x = self.base_flow_fwd._sample(num_samples, context = context_r)
+            samples = self.topflow._transform.inverse(x, context = context)
+        else:
+            x = self.base_flow_inv._sample(num_samples, context = context_l)
+            samples = self.topflow._transform(x, context = context)
+        return samples
+
+    def forward(self, x, context, inverse=False):
+        y, log_prob = self._log_prob(x, context=context,inverse=inverse)
