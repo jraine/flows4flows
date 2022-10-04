@@ -42,17 +42,19 @@ class FlowForFlowModel(nn.module):
     '''
     def __init__(self):
         super(self,FlowForFlowModel).__init__()
-        self.topflow = None
+        self.transform = None
         self.base_flow_fwd = None
         self.base_flow_inv = None
         self.configured = 0b000
 
-    def setTopFlow(self, topflow):
-        '''Set the top flow architecture'''
-        self.topflow = topflow
+    def setTransform(self, transform):
+        '''Set the transformer for the flows4flows model.
+        This should be an nflows transformer'''
+        self.transform = transform
         self.configured |= 1
 
-    def setBaseDist(self, base_fwd, base_inv=None):
+    def setBaseFlows(self, base_fwd, base_inv=None):
+        '''Set the base distribution flows for the forward (and optionally inverse if different) passes.'''
         self.base_flow_fwd = base_fwd
         self.configured |= 1<<1
         if base_inv is not None:
@@ -62,20 +64,22 @@ class FlowForFlowModel(nn.module):
         self.configured |= 1<<2
     
     def transform_and_log_prob(self, x, context=None, inverse=False):
+        '''Transform inputs through top transformer. Inverse pass possible.
+        Optionally pass a context tuple. Each element of the tuple will be passed as the context to the respective base distribution.'''
         assert self.configured & 0b111, "Must have top flow and base flows configured"
         if context is None:
             context_l,context_r = (None, None)
         else:
             context_l,context_r = context
         
-        y, logabsdet = self.transform(x,context,inverse)
+        y, logabsdet = self.forward(x,context,inverse)
         if inverse:
             logprob = self.base_flow_inv._log_prob(y, context_l)
         else:
             logprob = self.base_flow_fwd._log_prob(y, context_r)
-        return logprob - logabsdet
+        return y, logprob - logabsdet
     
-    def transform(self, x, context=None, inverse=False):
+    def forward(self, x, context=None, inverse=False):
         assert self.configured & 0b001, "Must have top flow configured"
         # context_l,context_r = context
         if inverse:
@@ -91,6 +95,7 @@ class FlowForFlowModel(nn.module):
 
 
     def sample(self, num_samples, context, inverse=False):
+        '''Something we will never likely need. Sample from a base distribution and pass through the top transformer.'''
         assert self.configured & 0b111, "Must have top flow and base flows configured"
         if context is None:
             context_l,context_r = (None, None)
@@ -98,10 +103,10 @@ class FlowForFlowModel(nn.module):
             context_l,context_r = context
         if inverse:
             x = self.base_flow_fwd._sample(num_samples, context = context_r)
-            samples = self.topflow._transform.inverse(x, context = context)
+            samples = self.transform.inverse(x, context = context)
         else:
             x = self.base_flow_inv._sample(num_samples, context = context_l)
-            samples = self.topflow._transform(x, context = context)
+            samples = self.transform(x, context = context)
         return samples
 
     def forward(self, x, context, inverse=False):
