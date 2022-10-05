@@ -11,7 +11,6 @@ from torch import distributions
 from torch.utils.data import Dataset
 
 
-
 class PlaneDataset(Dataset):
     def __init__(self, num_points, flip_axes=False):
         self.num_points = num_points
@@ -208,6 +207,7 @@ class CheckerboardDataset(PlaneDataset):
         x2 = x2_ + torch.floor(x1) % 2
         self.data = torch.stack([x1, x2]).t() * 2
 
+
 ### Additional classes for flows4flows
 
 class ConcentricRings(PlaneDataset):
@@ -233,29 +233,45 @@ class ConcentricRings(PlaneDataset):
             3.,
             4.
         ]
-        radii = [0.4*r for r in radii]
+        radii = [0.4 * r for r in radii]
         self.data = torch.cat(
-            [radius*self.create_circle(num_per_circle)
+            [radius * self.create_circle(num_per_circle)
              for radius in radii]
         )
 
-class Anulus(PlaneDataset):
-    def __init__(self, num_points, radius=None, flip_axes=False):
+
+class ConditionalAnulus(PlaneDataset):
+    def __init__(self, num_points, radius=None, std=0.3, flip_axes=False):
+        """
+        An Anulus dataset with
+        :param num_points:
+        :param radius: Radius of the anulus, if None many anuli with random radii
+        :param std: Width of the anulus
+        :param flip_axes:
+        """
         self.inner_radius = 1.0
         self.radius = radius
+        self.std = std
         super().__init__(num_points, flip_axes)
 
     @staticmethod
-    def create_circle(num_per_circle, radius=None, std=0.1, inner_radius = 0.5):
+    def create_circle(num_per_circle, radius=None, std=0.1, inner_radius=0.5):
         u = torch.rand(num_per_circle)
-        r = 3*torch.rand(num_per_circle) if radius is None else radius*torch.ones(num_per_circle)
+        r = torch.rand(num_per_circle) if radius is None else radius * torch.ones(num_per_circle)
         r += inner_radius
         x1 = torch.cos(2 * np.pi * u)
         x2 = torch.sin(2 * np.pi * u)
         data = 2 * torch.stack((x1, x2)).t()
         data += std * torch.randn(data.shape)
-        data = 0.5*(r.view(-1,1)) * data
-        return data
+        data = 0.5 * (r.view(-1, 1)) * data
+        return torch.cat((data, r.view(-1, 1)), 1)
 
     def _create_data(self):
-        self.data = self.create_circle(self.num_points,radius=self.radius,inner_radius = self.inner_radius)
+        self.data = self.create_circle(self.num_points, radius=self.radius, std=self.std,
+                                       inner_radius=self.inner_radius)
+
+class Anulus(ConditionalAnulus):
+
+    def _create_data(self):
+        self.data = self.create_circle(self.num_points, radius=self.radius, std=self.std,
+                                       inner_radius=self.inner_radius)[:, :2]

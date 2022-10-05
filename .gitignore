@@ -3,14 +3,15 @@
 
 # Data files
 /images
+/results
 /container
 /logs
 /jobs
 /experiments/data
 /experiments/logs
-/data/downloads
-/data/saved_models
-/data/slims
+/ffflows/data/downloads
+/ffflows/data/saved_models
+/ffflows/data/slims
 tbslurm/
 pplot/
 submit.txt
