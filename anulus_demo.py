@@ -8,6 +8,7 @@ from nflows.utils import tensor2numpy
 from torch.utils.data import DataLoader
 
 from ffflows.data.plane import Anulus, ConditionalAnulus
+from ffflows.models import FlowForFlow
 from torch.nn import functional as F
 import torch
 
@@ -101,7 +102,7 @@ def shift_anulus():
     batch_size = 128
 
     # Experiment path
-    top_save = Path('results/anulus_demo')
+    top_save = Path('results/anulus_demo3')
     top_save.mkdir(parents=True, exist_ok=True)
 
     # Set device
@@ -125,38 +126,54 @@ def shift_anulus():
             data, context = self.split_data(data)
             return -self.log_prob(data, context=context).mean()
 
-    class FlowForFlow(ConditionalFlow):
-        """Again hard coding the conditioning."""
+    # class FlowForFlow(ConditionalFlow):
+    #     """Again hard coding the conditioning."""
 
-        def transform(self, data, context):
-            transformed = torch.zeros_like(data)
-            detJ = torch.zeros_like(context)
-            transformed[(context < 0).view(-1), :], detJ[context < 0] = self._transform.inverse(
-                data[(context < 0).view(-1), :], context[context < 0].view(-1, 1))
-            transformed[(context > 0).view(-1), :], detJ[context > 0] = self._transform(data[(context > 0).view(-1), :],
-                                                                                        context[context > 0].view(-1,
-                                                                                                                  1))
-            return transformed, detJ
+    #     def transform(self, data, context):
+    #         transformed = torch.zeros_like(data)
+    #         detJ = torch.zeros_like(context)
+    #         transformed[(context < 0).view(-1), :], detJ[context < 0] = self._transform.inverse(
+    #             data[(context < 0).view(-1), :], context[context < 0].view(-1, 1))
+    #         transformed[(context > 0).view(-1), :], detJ[context > 0] = self._transform(data[(context > 0).view(-1), :],
+    #                                                                                     context[context > 0].view(-1,
+    #                                                                                                               1))
+    #         return transformed, detJ
 
-        def transform_from_to(self, input, target):
-            input_d, context_d = self.split_data(input)
-            input_t, context_t = self.split_data(target)
-            context = context_d - context_t
-            return self.transform(input_d, context)
+    #     def transform_from_to(self, input, target):
+    #         input_d, context_d = self.split_data(input)
+    #         input_t, context_t = self.split_data(target)
+    #         context = context_d - context_t
+    #         return self.transform(input_d, context)
 
-        def log_prob(self, data, context):
-            target_radii = context[torch.randperm(len(context))]
-            transformed, detJ = self.transform(data, context - target_radii)
-            return self._distribution.log_prob(transformed, context=target_radii) + detJ
+    #     def log_prob(self, data, context):
+    #         target_radii = context[torch.randperm(len(context))]
+    #         transformed, detJ = self.transform(data, context - target_radii)
+    #         return self._distribution.log_prob(transformed, context=target_radii) + detJ
 
-        def compute_loss(self, data):
-            data, context = self.split_data(data)
-            return -self.log_prob(data, context).mean()
+    #     def compute_loss(self, data):
+    #         data, context = self.split_data(data)
+    #         return -self.log_prob(data, context).mean()
 
     # Define the base density
     base_density = ConditionalFlow(spline_inn(2, context_features=1), StandardNormal([2]))
-    # Define the flow for flow object
-    flow_for_flow = FlowForFlow(spline_inn(2, context_features=1), base_density)
+    # # Define the flow for flow object
+    # flow_for_flow = FlowForFlow(spline_inn(2, context_features=1), base_density)
+
+    class fff(FlowForFlow):
+        """Try and test with current setup"""
+        def split_data(self, data):  
+            return torch.split(data, 2, dim=1)
+
+        def compute_loss(self, data):
+            data, context = self.split_data(data)
+            return -self.log_prob(data, [context, context+0.5*torch.rand(len(context)).view(-1,1)]).mean()
+
+        def final_eval(self, data, target_shift):
+            data, context = self.split_data(data)
+            return self.transform(data, [context, context+target_shift*torch.ones_like(context)])
+        
+
+    flow_for_flow = fff(spline_inn(2, context_features=1), base_density, context_func=lambda x, y: y-x)
 
     # Train the base density
     models_save = top_save / 'base_densities'
@@ -183,13 +200,18 @@ def shift_anulus():
     train(flow_for_flow, train_loader, valid_loader, 10, 0.001, device, models_save, top_save / 'loss_f4f.png')
 
     n_points = int(1e6)
-    input_dist = Anulus(num_points=n_points, radius=1)
+    input_dist = ConditionalAnulus(num_points=n_points, radius=0.5)
     plot_data(input_dist.data, top_save / f'flow_for_flow_input.png')
 
-    for rad in [-1.5, -1, -0.5, 1, 1.5, 2]:
-        with torch.no_grad():
-            samples, _ = flow_for_flow.transform(input_dist.data, rad * torch.ones(n_points))
-        plot_data(samples, top_save / f'flow_for_flow_{rad}.png')
+    # for rad in [-1.5, -1, -0.5, 1, 1.5, 2]:
+    for inner_rad in [0.3, 0.5, 0.7]:
+        input_dist = ConditionalAnulus(num_points=n_points, radius=inner_rad)
+        plot_data(input_dist.data, top_save / f'flow_for_flow_input_{inner_rad}.png')
+
+        for shift in [0.1,0.2,0.3]:
+            with torch.no_grad():
+                samples, _ = flow_for_flow.final_eval(input_dist.data, target_shift=shift)
+            plot_data(samples, top_save / f'flow_for_flow_output_{inner_rad}_plus_{shift}.png')
 
 
 if __name__ == '__main__':
