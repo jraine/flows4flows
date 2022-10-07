@@ -2,6 +2,7 @@ from re import X
 from nflows import transforms, flows
 from torch.nn import functional as F
 import torch.nn as nn
+import torch
 
 from .utils import getActivation
 
@@ -47,7 +48,7 @@ class FlowForFlow(flows.Flow):
         self.base_flow_fwd = distribution_fwd
         self._context_used_in_base = True
         self.base_flow_inv = distribution_inv if distribution_inv is not None else distribution_fwd
-        self.context_func = context_func if context_func is not None else nn.Identity
+        self.context_func = context_func if context_func is not None else lambda x,y: torch.cat((x,y),axis=-1)
         
     def set_forward_base(self):
         '''Just in case we need to change the base distribution in the subclass'''
@@ -64,7 +65,7 @@ class FlowForFlow(flows.Flow):
         else:
             context_l,context_r = context
             context = self._embedding_net(self.context_func(context_r,context_l))
-            
+
         if inverse:
             y, logabsdet = self._transform.inverse(inputs, context=context)
         else:
