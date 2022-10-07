@@ -14,7 +14,7 @@ class DenseNet(nn.Module):
         List of hidden nodes.
         Choose activations as strings.
         '''
-        super(self,DenseNet).__init__(*args,**kwargs)
+        super().__init__(*args,**kwargs)
         self.layers = []
         for f_in,f_out in zip([input_dim]+hidden_nodes[:-1],hidden_nodes):
             self.layers.append(nn.linear(f_in,f_out,bias=bias))
@@ -43,10 +43,10 @@ class FlowForFlow(flows.Flow):
     Holds the top flow as well as base distributions, and handles training steps for forward and backward.
     '''
     def __init__(self, transform, distribution_fwd, distribution_inv=None, embedding_net=None, context_func=None):
+        super().__init__(transform, distribution_fwd, embedding_net)
         self.base_flow_fwd = distribution_fwd
         self.base_flow_inv = distribution_inv if distribution_inv is not None else distribution_fwd
         self.context_func = context_func if context_func is not None else nn.Identity
-        super(self,FlowForFlow).__init__(transform, distribution_fwd, embedding_net)
         
     def set_forward_base(self):
         '''Just in case we need to change the base distribution in the subclass'''
@@ -59,7 +59,6 @@ class FlowForFlow(flows.Flow):
     def transform_and_log_prob(self, x, context=None, inverse=False):
         '''Transform inputs through top transformer. Inverse pass possible.
         Optionally pass a context tuple. Each element of the tuple will be passed as the context to the respective base distribution.'''
-        assert self.configured & 0b111, "Must have top flow and base flows configured"
         if context is None:
             context_l,context_r = (None, None)
         else:
@@ -116,7 +115,3 @@ class FlowForFlow(flows.Flow):
 
     def sample_and_log_prob(self, num_samples, context=None):
         raise NotImplementedError()
-
-    # def compute_loss(self, data):
-    #         data, context = self.split_data(data)
-    #         return -self.log_prob(data, context).mean()
