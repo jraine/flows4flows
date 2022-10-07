@@ -57,20 +57,20 @@ class FlowForFlow(flows.Flow):
         '''Just in case we need to change the base distribution in the subclass'''
         self._distibution = self.base_flow_inv
 
-    def transform_and_log_prob(self, inputs, context=None, inverse=False):
-        '''Transform inputs through top transformer. Inverse pass possible.
-        Optionally pass a context tuple. Each element of the tuple will be passed as the context to the respective base distribution.'''
-        if context is None:
-            context_l,context_r = (None, None)
-        else:
-            context_l,context_r = context
+    # def transform_and_log_prob(self, inputs, context=None, inverse=False):
+    #     '''Transform inputs through top transformer. Inverse pass possible.
+    #     Optionally pass a context tuple. Each element of the tuple will be passed as the context to the respective base distribution.'''
+    #     if context is None:
+    #         context_l,context_r = (None, None)
+    #     else:
+    #         context_l,context_r = context
         
-        y, logabsdet = self.forward(x,context,inverse)
-        if inverse:
-            logprob = self.base_flow_inv._log_prob(y, context_l)
-        else:
-            logprob = self.base_flow_fwd._log_prob(y, context_r)
-        return y, logprob - logabsdet
+    #     y, logabsdet = self.forward(x,context,inverse)
+    #     if inverse:
+    #         logprob = self.base_flow_inv._log_prob(y, context_l)
+    #     else:
+    #         logprob = self.base_flow_fwd._log_prob(y, context_r)
+    #     return y, logprob - logabsdet
     
     def transform(self,inputs, context=None, inverse=False):
         '''Transform inputs with transformer given context. Choose dorward (defualt) or inverse (set to true) pass'''
