@@ -45,6 +45,7 @@ class FlowForFlow(flows.Flow):
     def __init__(self, transform, distribution_fwd, distribution_inv=None, embedding_net=None, context_func=None):
         super().__init__(transform, distribution_fwd, embedding_net)
         self.base_flow_fwd = distribution_fwd
+        self._context_used_in_base = True
         self.base_flow_inv = distribution_inv if distribution_inv is not None else distribution_fwd
         self.context_func = context_func if context_func is not None else nn.Identity
         
@@ -56,7 +57,7 @@ class FlowForFlow(flows.Flow):
         '''Just in case we need to change the base distribution in the subclass'''
         self._distibution = self.base_flow_inv
 
-    def transform_and_log_prob(self, x, context=None, inverse=False):
+    def transform_and_log_prob(self, inputs, context=None, inverse=False):
         '''Transform inputs through top transformer. Inverse pass possible.
         Optionally pass a context tuple. Each element of the tuple will be passed as the context to the respective base distribution.'''
         if context is None:
@@ -80,13 +81,16 @@ class FlowForFlow(flows.Flow):
         
         return y, logabsdet
 
-    def _log_prob(self, inputs, context=None, inverse=False):
+    def log_prob(self, inputs, context=None, inverse=False):
         '''log probability of transformed inputs given context, use relevant base distribution based on forward or inverse.'''
-        context_l,context_r = context
-        embedded_context = self._embedding_net(self.context_func(context))
+        if context is None:
+            context_l,context_r = (None, None)
+        else:
+            context_l,context_r = context
+        embedded_context = self._embedding_net(self.context_func(context_r,context_l))
         
         noise, logabsdet = self.transform(inputs, context=embedded_context, inverse=inverse)
-        if self._context_used_in_base:
+        if context is not None:
             con = context_l if inverse else context_r
             log_prob = self._distribution.log_prob(noise, context=con)
         else:
