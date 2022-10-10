@@ -156,24 +156,26 @@ def shift_anulus():
 
     # Define the base density
     base_density = ConditionalFlow(spline_inn(2, context_features=1), StandardNormal([2]))
+
     # # Define the flow for flow object
     # flow_for_flow = FlowForFlow(spline_inn(2, context_features=1), base_density)
 
     class fff(FlowForFlow):
         """Try and test with current setup"""
-        def split_data(self, data):  
+
+        def split_data(self, data):
             return torch.split(data, 2, dim=1)
 
         def compute_loss(self, data):
             data, context = self.split_data(data)
-            return -self.log_prob(data, [context, context+0.5*torch.rand(len(context)).view(-1,1)]).mean()
+            # Map to a random
+            return -self.log_prob(data, context, context + 0.3 * torch.randn(len(context)).view(-1, 1)).mean()
 
         def final_eval(self, data, target_shift):
             data, context = self.split_data(data)
-            return self.transform(data, [context, context+target_shift*torch.ones_like(context)])
-        
+            return self.transform(data, context, context + target_shift * torch.ones_like(context))
 
-    flow_for_flow = fff(spline_inn(2, context_features=1), base_density, context_func=lambda x, y: y-x)
+    flow_for_flow = fff(spline_inn(2, context_features=1), base_density)
 
     # Train the base density
     models_save = top_save / 'base_densities'
@@ -208,7 +210,7 @@ def shift_anulus():
         input_dist = ConditionalAnulus(num_points=n_points, radius=inner_rad)
         plot_data(input_dist.data, top_save / f'flow_for_flow_input_{inner_rad}.png')
 
-        for shift in [0.1,0.2,0.3]:
+        for shift in [0.1, 0.2, 0.3]:
             with torch.no_grad():
                 samples, _ = flow_for_flow.final_eval(input_dist.data, target_shift=shift)
             plot_data(samples, top_save / f'flow_for_flow_output_{inner_rad}_plus_{shift}.png')
