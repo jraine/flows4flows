@@ -8,12 +8,12 @@ from nflows.utils import tensor2numpy
 from torch.utils.data import DataLoader
 
 from ffflows.data.plane import Anulus, ConditionalAnulus
-from ffflows.models import FlowForFlow
+from ffflows.models import FlowForFlow, DeltaFlowForFlow
 from torch.nn import functional as F
 import torch
 
 
-def spline_inn(inp_dim, nodes=128, num_blocks=2, nstack=3, tail_bound=3., tails='linear', activation=F.relu, lu=0,
+def spline_inn(inp_dim, nodes=128, num_blocks=2, nstack=3, tail_bound=3.5, tails='linear', activation=F.relu, lu=0,
                num_bins=10, context_features=None):
     transform_list = []
     for i in range(nstack):
@@ -126,41 +126,13 @@ def shift_anulus():
             data, context = self.split_data(data)
             return -self.log_prob(data, context=context).mean()
 
-    # class FlowForFlow(ConditionalFlow):
-    #     """Again hard coding the conditioning."""
-
-    #     def transform(self, data, context):
-    #         transformed = torch.zeros_like(data)
-    #         detJ = torch.zeros_like(context)
-    #         transformed[(context < 0).view(-1), :], detJ[context < 0] = self._transform.inverse(
-    #             data[(context < 0).view(-1), :], context[context < 0].view(-1, 1))
-    #         transformed[(context > 0).view(-1), :], detJ[context > 0] = self._transform(data[(context > 0).view(-1), :],
-    #                                                                                     context[context > 0].view(-1,
-    #                                                                                                               1))
-    #         return transformed, detJ
-
-    #     def transform_from_to(self, input, target):
-    #         input_d, context_d = self.split_data(input)
-    #         input_t, context_t = self.split_data(target)
-    #         context = context_d - context_t
-    #         return self.transform(input_d, context)
-
-    #     def log_prob(self, data, context):
-    #         target_radii = context[torch.randperm(len(context))]
-    #         transformed, detJ = self.transform(data, context - target_radii)
-    #         return self._distribution.log_prob(transformed, context=target_radii) + detJ
-
-    #     def compute_loss(self, data):
-    #         data, context = self.split_data(data)
-    #         return -self.log_prob(data, context).mean()
-
     # Define the base density
     base_density = ConditionalFlow(spline_inn(2, context_features=1), StandardNormal([2]))
 
     # # Define the flow for flow object
     # flow_for_flow = FlowForFlow(spline_inn(2, context_features=1), base_density)
 
-    class fff(FlowForFlow):
+    class fff(DeltaFlowForFlow):
         """Try and test with current setup"""
 
         def split_data(self, data):

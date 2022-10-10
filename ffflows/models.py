@@ -118,7 +118,7 @@ class DenseNet(nn.Module):
 #         raise NotImplementedError()
 
 
-class FlowForFlow(flows.Flow):
+class FlowForFlow(abc.ABC, flows.Flow):
     '''
     Driving class for a flow for flow model.
     Holds the top flow as well as base distributions, and handles training steps for forward and backward.
@@ -142,7 +142,7 @@ class FlowForFlow(flows.Flow):
         if context_l is None:
             return None
         else:
-            return self._direction_func(context_l, context_r)
+            return self._direction_func(context_l, context_r).view(-1)
 
     def set_forward_base(self):
         '''Just in case we need to change the base distribution in the subclass'''
@@ -169,12 +169,25 @@ class FlowForFlow(flows.Flow):
         if order is None:
             outputs, logabsdet = self.__transform(inputs, context_l, context_r)
         else:
-            outputs = self.zeros_like(inputs)
+            outputs = torch.zeros_like(inputs)
             logabsdet = torch.zeros(len(inputs)).to(inputs)
             for direction, mx in zip([True, False], [order, ~order]):
                 outputs[mx], logabsdet[mx] = self.__transform(inputs[mx], context_l[mx], context_r[mx],
                                                               inverse=direction)
         return outputs, logabsdet
+
+    def bd_log_prob(self, noise, context_l=None, context_r=None):
+        '''
+        Base density log probabilites.
+        '''
+        order = self.direction_func(context_l, context_r)
+        if order is None:
+            log_prob = self.base_flow_fwd.log_prob(noise)
+        else:
+            log_prob = torch.zeros(len(noise)).to(noise)
+            log_prob[order] = self.base_flow_fwd.log_prob(noise[order], context=context_r[order])
+            log_prob[~order] = self.base_flow_inv.log_prob(noise[~order], context=context_l[~order])
+        return log_prob
 
     def log_prob(self, inputs, context_l=None, context_r=None, inverse=False):
         '''
@@ -182,13 +195,7 @@ class FlowForFlow(flows.Flow):
         '''
 
         noise, logabsdet = self.transform(inputs, context_l, context_r)
-        order = self.direction_func(context_l, context_r)
-        if order is None:
-            log_prob = self.base_flow_fwd.log_prob(noise)
-        else:
-            log_prob = torch.zeros(len(noise)).to(logabsdet)
-            log_prob[order] = self.base_flow_fwd.log_prob(noise[order], context=context_r[order])
-            log_prob[~order] = self.base_flow_inv.log_prob(noise[~order], context=context_l[~order])
+        log_prob = self.bd_log_prob(noise, context_l, context_r)
         return log_prob + logabsdet
 
     def _sample(self, num_samples, context):  # , inverse=False):
