@@ -153,7 +153,13 @@ class FlowForFlow(abc.ABC, flows.Flow):
         self._distibution = self.base_flow_inv
 
     def __transform(self, inputs, context_l=None, context_r=None, inverse=False):
-        '''Transform inputs with transformer given context. Choose forward (defualt) or inverse (set to true) pass.'''
+        '''Transform inputs with transformer given context.
+        Inputs:
+            inputs: Input Tensor for transformer
+            context_l: Context tensor for samples from left of transformer
+            context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
+            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left \
+or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.'''
         if context_l is None:
             context = None
         else:
@@ -164,10 +170,17 @@ class FlowForFlow(abc.ABC, flows.Flow):
 
         return y, logabsdet
 
-    def transform(self, inputs, context_l=None, context_r=None):
+    def transform(self, inputs, context_l=None, context_r=None, inverse=False):
+        '''Transform inputs with transformer given context.
+        Inputs:
+            inputs: Input Tensor for transformer
+            context_l: Context tensor for samples from left of transformer
+            context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
+            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left \
+or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.'''
         order = self.direction_func(context_l, context_r)
         if order is None:
-            outputs, logabsdet = self.__transform(inputs, context_l, context_r)
+            outputs, logabsdet = self.__transform(inputs, context_l, context_r, inverse=inverse)
         else:
             outputs = torch.zeros_like(inputs)
             logabsdet = torch.zeros(len(inputs)).to(inputs)
@@ -176,13 +189,19 @@ class FlowForFlow(abc.ABC, flows.Flow):
                                                               inverse=direction)
         return outputs, logabsdet
 
-    def bd_log_prob(self, noise, context_l=None, context_r=None):
+    def bd_log_prob(self, noise, context_l=None, context_r=None, inverse=False):
         '''
         Base density log probabilites.
+        Inputs:
+            noise: Input Tensor for base density
+            context_l: Context tensor for samples from left of transformer
+            context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
+            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left or right base density. Default False (forward)
         '''
         order = self.direction_func(context_l, context_r)
         if order is None:
-            log_prob = self.base_flow_fwd.log_prob(noise)
+            base_flow = self.base_flow_fwd if inverse is False else self.base_flow_inv
+            log_prob = base_flow.log_prob(noise)
         else:
             log_prob = torch.zeros(len(noise)).to(noise)
             log_prob[order] = self.base_flow_fwd.log_prob(noise[order], context=context_r[order])
@@ -191,11 +210,17 @@ class FlowForFlow(abc.ABC, flows.Flow):
 
     def log_prob(self, inputs, context_l=None, context_r=None, inverse=False):
         '''
-        log probability of transformed inputs given context, use relevant base distribution based on forward or inverse.
+        log probability of transformed inputs given context, use relevant base distribution based on forward or inverse, infered from context or specified from inverse
+        Inputs:
+            inputs: Input Tensor for transformer
+            context_l: Context tensor for samples from left of transformer
+            context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
+            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left \
+or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.
         '''
 
-        noise, logabsdet = self.transform(inputs, context_l, context_r)
-        log_prob = self.bd_log_prob(noise, context_l, context_r)
+        noise, logabsdet = self.transform(inputs, context_l, context_r, inverse)
+        log_prob = self.bd_log_prob(noise, context_l, context_r, inverse)
         return log_prob + logabsdet
 
     def _sample(self, num_samples, context):  # , inverse=False):
@@ -215,3 +240,27 @@ class DeltaFlowForFlow(FlowForFlow):
 
     def _direction_func(self, x, y):
         return self.context_func(x, y) < 0
+
+class ConcatFlowForFlow(FlowForFlow):
+
+    def context_func(self, x, y):
+        return torch.cat([x,y],axis=-1)
+
+    def _direction_func(self, x, y):
+        return self.context_func(x, y) < 0
+
+class DiscreteBaseFlowForFlow(FlowForFlow):
+
+    def context_func(self, x, y=None):
+        return None
+
+    def _direction_func(self, x, y):
+        return None
+
+class DiscreteBaseConditionFlowForFlow(FlowForFlow):
+
+    def context_func(self, x, y=None):
+        return x
+
+    def _direction_func(self, x, y):
+        return None
