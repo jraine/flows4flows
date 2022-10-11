@@ -264,7 +264,7 @@ class ConditionalAnulus(PlaneDataset):
         data = 2 * torch.stack((x1, x2)).t()
         data += std * torch.randn(data.shape)
         data = 0.5 * (r.view(-1, 1)) * data
-        return torch.cat((data, r.view(-1, 1)), 1)
+        return [[d,r] for d,r in zip(data, r.view(-1, 1))]
 
     def _create_data(self):
         self.data = self.create_circle(self.num_points, radius=self.radius, std=self.std,

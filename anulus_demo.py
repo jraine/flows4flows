@@ -13,10 +13,10 @@ from torch.nn import functional as F
 import torch
 
 
-def spline_inn(inp_dim, nodes=128, num_blocks=2, nstack=3, tail_bound=3.5, tails='linear', activation=F.relu, lu=0,
+def spline_inn(inp_dim, nodes=128, num_blocks=2, num_stack=3, tail_bound=3.5, tails='linear', activation=F.relu, lu=0,
                num_bins=10, context_features=None):
     transform_list = []
-    for i in range(nstack):
+    for i in range(num_stack):
         transform_list += [
             transforms.MaskedPiecewiseRationalQuadraticAutoregressiveTransform(inp_dim, nodes,
                                                                                num_blocks=num_blocks,
@@ -49,6 +49,7 @@ def train(model, train_loader, valid_loader, n_epochs, learning_rate, device, di
     train_loss = torch.zeros(n_epochs)
     valid_loss = torch.zeros(n_epochs)
     for epoch in range(n_epochs):
+        print(f"Training epoch {epoch}")
         t_loss = []
         # Redefine the loaders at the start of every epoch, this will also resample if resampling the mass
         for step, data in enumerate(train_loader):
@@ -102,7 +103,7 @@ def shift_anulus():
     batch_size = 128
 
     # Experiment path
-    top_save = Path('results/anulus_demo3')
+    top_save = Path('results/anulus_demo4')
     top_save.mkdir(parents=True, exist_ok=True)
 
     # Set device
@@ -120,10 +121,10 @@ def shift_anulus():
         """For the demo the way the conditioning is done is hard coded."""
 
         def split_data(self, data):
-            return torch.split(data, 2, dim=1)
+            return data[0], data[1]
 
         def compute_loss(self, data):
-            data, context = self.split_data(data)
+            data, context = data[0], data[1]
             return -self.log_prob(data, context=context).mean()
 
     # Define the base density
@@ -136,23 +137,26 @@ def shift_anulus():
         """Try and test with current setup"""
 
         def split_data(self, data):
-            return torch.split(data, 2, dim=1)
+            return data[0],data[1]
 
         def compute_loss(self, data):
-            data, context = self.split_data(data)
+            data, context = data[0],data[1]
             # Map to a random
             return -self.log_prob(data, context, context + 0.3 * torch.randn(len(context)).view(-1, 1)).mean()
 
-        def final_eval(self, data, target_shift):
-            data, context = self.split_data(data)
-            return self.transform(data, context, context + target_shift * torch.ones_like(context))
+        def final_eval(self, data, context_l, context_r):
+            # data, context = data[0], data[1]
+            context_r = context_l + context_r
+            c_l = torch.ones(len(data))*context_l if len(data) != 0 else torch.ones(len(data)) 
+            c_r = torch.ones(len(data))*context_r if len(data) != 0 else torch.ones(len(data))
+            return self.transform(data, c_l, c_r)
 
     flow_for_flow = fff(spline_inn(2, context_features=1), base_density)
 
     # Train the base density
     models_save = top_save / 'base_densities'
     models_save.mkdir(exist_ok=True)
-    train(base_density, train_loader, valid_loader, 10, 0.001, device, models_save, top_save / 'loss_base.png')
+    train(base_density, train_loader, valid_loader, 1, 0.001, device, models_save, top_save / 'loss_base.png')
 
     # Evaluate the base density
     for rad in [1, 2, 3]:
@@ -171,20 +175,22 @@ def shift_anulus():
 
     models_save = top_save / 'f4fs'
     models_save.mkdir(exist_ok=True)
-    train(flow_for_flow, train_loader, valid_loader, 10, 0.001, device, models_save, top_save / 'loss_f4f.png')
+    train(flow_for_flow, train_loader, valid_loader, 1, 0.001, device, models_save, top_save / 'loss_f4f.png')
 
-    n_points = int(1e6)
+    n_points = int(1000)
     input_dist = ConditionalAnulus(num_points=n_points, radius=0.5)
-    plot_data(input_dist.data, top_save / f'flow_for_flow_input.png')
+    nocond = torch.stack([d[0] for d in input_dist.data])
+    plot_data(nocond, top_save / f'flow_for_flow_input.png')
 
     # for rad in [-1.5, -1, -0.5, 1, 1.5, 2]:
     for inner_rad in [0.3, 0.5, 0.7]:
         input_dist = ConditionalAnulus(num_points=n_points, radius=inner_rad)
-        plot_data(input_dist.data, top_save / f'flow_for_flow_input_{inner_rad}.png')
+        nocond = torch.stack([d[0] for d in input_dist.data])
+        plot_data(nocond, top_save / f'flow_for_flow_input_{inner_rad}.png')
 
         for shift in [0.1, 0.2, 0.3]:
             with torch.no_grad():
-                samples, _ = flow_for_flow.final_eval(input_dist.data, target_shift=shift)
+                samples, _ = flow_for_flow.final_eval(nocond, inner_rad, shift)
             plot_data(samples, top_save / f'flow_for_flow_output_{inner_rad}_plus_{shift}.png')
 
 
