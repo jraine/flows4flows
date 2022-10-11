@@ -8,7 +8,8 @@ from nflows.utils import tensor2numpy
 from torch.utils.data import DataLoader
 
 from ffflows.data.dist_to_dist import UnconditionalDataToData
-from ffflows.data.plane import Anulus, ConditionalAnulus, CheckerboardDataset, FourCircles
+from ffflows.data.plane import Anulus, ConditionalAnulus, CheckerboardDataset, FourCircles, ConcentricRings, \
+    TwoSpiralsDataset
 from ffflows.models import FlowForFlow, DeltaFlowForFlow
 from torch.nn import functional as F
 import torch
@@ -126,7 +127,9 @@ def move_dists():
         # TODO can the flow learn the identity? Or does it try to shift things around?
         left_dataset = CheckerboardDataset(num_points=n_points)
         right_dataset = FourCircles(num_points=n_points)
-        right_dataset = CheckerboardDataset(num_points=n_points)
+        right_dataset = ConcentricRings(num_points=n_points)
+        right_dataset = TwoSpiralsDataset(num_points=n_points)
+        # right_dataset = CheckerboardDataset(num_points=n_points)
         return UnconditionalDataToData(left_dataset, right_dataset)
 
     train_dataset = make_data(n_points)
@@ -148,7 +151,7 @@ def move_dists():
         models_save.mkdir(exist_ok=True)
         left_loader_train = DataLoader(dataset=getattr(train_dataset, func_direct)(), batch_size=batch_size)
         left_loader_valid = DataLoader(dataset=getattr(valid_dataset, func_direct)(), batch_size=batch_size)
-        train(density, left_loader_train, left_loader_valid, 10, 0.001, device, models_save,
+        train(density, left_loader_train, left_loader_valid, 30, 0.001, device, models_save,
               top_save / f'loss_base_{func_direct}.png')
 
     train_base(left_base_density, 'left')
@@ -199,7 +202,7 @@ def move_dists():
     models_save.mkdir(exist_ok=True)
     train_loader = DataLoader(dataset=train_dataset.paired(), batch_size=batch_size)
     valid_loader = DataLoader(dataset=valid_dataset.paired(), batch_size=batch_size)
-    train(flow_for_flow, train_loader, valid_loader, 10, 0.001, device, models_save, top_save / 'loss_f4f.png')
+    train(flow_for_flow, train_loader, valid_loader, 50, 0.001, device, models_save, top_save / 'loss_f4f.png')
 
     n_points = int(1e6)
     n_points = int(1e5)
@@ -207,6 +210,7 @@ def move_dists():
 
     input_data = test_data.left().data
     plot_data(input_data, top_save / f'flow_for_flow_input.png')
+    plot_data(test_data.right().data, top_save / f'flow_for_flow_target.png')
     left_to_right, _ = flow_for_flow.transform(input_data, inverse=True)
     plot_data(left_to_right, top_save / f'left_to_right.png')
 
