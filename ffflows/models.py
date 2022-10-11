@@ -5,40 +5,37 @@ from torch.nn import functional as F
 import torch.nn as nn
 import torch
 
-from .utils import getActivation
+# class DenseNet(nn.Module):
+#     '''Simple feedforward network'''
 
+#     def __init__(self, input_dim, output_dim, hidden_nodes, hidden_act='relu', output_act='linear',
+#                  batch_norm=False, layer_norm=False, dropout=0, bias=True, *args, **kwargs):
+#         '''Constructor, provide the input and output dimensions.
+#         List of hidden nodes.
+#         Choose activations as strings.
+#         '''
+#         super().__init__(*args, **kwargs)
+#         self.layers = []
+#         for f_in, f_out in zip([input_dim] + hidden_nodes[:-1], hidden_nodes):
+#             self.layers.append(nn.linear(f_in, f_out, bias=bias))
+#             self.layers.append(nn.linear(f_in, f_out, bias=bias))
+#             self.layers.append(get_activation(hidden_act))
+#             if batch_norm:
+#                 self.layers.append(nn.BatchNorm1D(f_out))
+#             if layer_norm:
+#                 self.layers.append(nn.LayerNorm(f_out))
+#             if dropout != 0:
+#                 assert type(dropout) is float, "Dropout value must be a float between 0 and 1"
+#                 assert (dropout >= 0) & (dropout < 1), "Dropout value must be a float between 0 and 1"
+#                 self.layers.append(nn.Dropout(dropout))
+#         self.layers.append(nn.linear(hidden_nodes[-1], output_dim, bias=bias))
+#         self.layers.append(get_activation(output_act))
 
-class DenseNet(nn.Module):
-    '''Simple feedforward network'''
-
-    def __init__(self, input_dim, output_dim, hidden_nodes, hidden_act='relu', output_act='linear',
-                 batch_norm=False, layer_norm=False, dropout=0, bias=True, *args, **kwargs):
-        '''Constructor, provide the input and output dimensions.
-        List of hidden nodes.
-        Choose activations as strings.
-        '''
-        super().__init__(*args, **kwargs)
-        self.layers = []
-        for f_in, f_out in zip([input_dim] + hidden_nodes[:-1], hidden_nodes):
-            self.layers.append(nn.linear(f_in, f_out, bias=bias))
-            self.layers.append(nn.linear(f_in, f_out, bias=bias))
-            self.layers.append(getActivation(hidden_act))
-            if batch_norm:
-                self.layers.append(nn.BatchNorm1D(f_out))
-            if layer_norm:
-                self.layers.append(nn.LayerNorm(f_out))
-            if dropout != 0:
-                assert type(dropout) is float, "Dropout value must be a float between 0 and 1"
-                assert (dropout >= 0) & (dropout < 1), "Dropout value must be a float between 0 and 1"
-                self.layers.append(nn.Dropout(dropout))
-        self.layers.append(nn.linear(hidden_nodes[-1], output_dim, bias=bias))
-        self.layers.append(getActivation(output_act))
-
-    def forward(self, input):
-        x = input
-        for layer in self.layers:
-            x = layer(x)
-        return x
+#     def forward(self, input):
+#         x = input
+#         for layer in self.layers:
+#             x = layer(x)
+#         return x
 
 
 # class FlowForFlow(flows.Flow):
@@ -163,6 +160,8 @@ or right base density. Default False (forward) Choose forward (defualt) or inver
         if context_l is None:
             context = None
         else:
+            if context_r is not None:
+                context_r = torch.tile(context_r.view(-1,*context_l.view(context_l.shape[0],-1).shape[1:]),(context_l.shape[0],)).view(context_l.shape) if context_r.view(-1,*context_l.view(context_l.shape[0],-1).shape[1:]).shape[0] == 1 else context_r
             context = self._embedding_net(self.context_func(context_r, context_l))
 
         transform = self._transform.inverse if inverse else self._transform
