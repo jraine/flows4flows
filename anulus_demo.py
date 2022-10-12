@@ -114,7 +114,7 @@ def shift_anulus():
         dataset = ConditionalAnulus(num_points=n_points)
         return DataLoader(dataset=dataset, batch_size=batch_size)
 
-    train_loader = get_loader(batch_size=batch_size)
+    train_loader = get_loader(batch_size=128)
     valid_loader = get_loader(n_points=int(1e4), batch_size=1000)
 
     class ConditionalFlow(Flow):
@@ -146,17 +146,14 @@ def shift_anulus():
 
         def final_eval(self, data, context_l, context_r):
             # data, context = data[0], data[1]
-            context_r = context_l + context_r
-            c_l = torch.ones(len(data))*context_l if len(data) != 0 else torch.ones(len(data)) 
-            c_r = torch.ones(len(data))*context_r if len(data) != 0 else torch.ones(len(data))
-            return self.transform(data, c_l, c_r)
+            return self.transform(data, context_l, context_r)
 
     flow_for_flow = fff(spline_inn(2, context_features=1), base_density)
 
     # Train the base density
     models_save = top_save / 'base_densities'
     models_save.mkdir(exist_ok=True)
-    train(base_density, train_loader, valid_loader, 1, 0.001, device, models_save, top_save / 'loss_base.png')
+    train(base_density, train_loader, valid_loader, 10, 0.001, device, models_save, top_save / 'loss_base.png')
 
     # Evaluate the base density
     for rad in [1, 2, 3]:
@@ -175,22 +172,26 @@ def shift_anulus():
 
     models_save = top_save / 'f4fs'
     models_save.mkdir(exist_ok=True)
-    train(flow_for_flow, train_loader, valid_loader, 1, 0.001, device, models_save, top_save / 'loss_f4f.png')
+    train(flow_for_flow, train_loader, valid_loader, 10, 0.001, device, models_save, top_save / 'loss_f4f.png')
 
-    n_points = int(1000)
+    n_points = int(1e6)
     input_dist = ConditionalAnulus(num_points=n_points, radius=0.5)
-    nocond = torch.stack([d[0] for d in input_dist.data])
-    plot_data(nocond, top_save / f'flow_for_flow_input.png')
+    input_data = torch.stack([d[0] for d in input_dist.data])
+    # input_data = input_dist.__getitem__()[0]
+    plot_data(input_data, top_save / f'flow_for_flow_input.png')
 
     # for rad in [-1.5, -1, -0.5, 1, 1.5, 2]:
     for inner_rad in [0.3, 0.5, 0.7]:
-        input_dist = ConditionalAnulus(num_points=n_points, radius=inner_rad)
-        nocond = torch.stack([d[0] for d in input_dist.data])
-        plot_data(nocond, top_save / f'flow_for_flow_input_{inner_rad}.png')
+        print(f"Radius {inner_rad}")
+        input_dist = DataLoader(ConditionalAnulus(num_points=n_points, radius=inner_rad), batch_size=n_points)
+        input_data = next(iter(input_dist))
+        # nocond = torch.stack([d[0] for d in input_dist.data])
+        plot_data(input_data[0], top_save / f'flow_for_flow_input_{inner_rad}.png')
 
         for shift in [0.1, 0.2, 0.3]:
+            print(f"Target radius {rad+shift}")
             with torch.no_grad():
-                samples, _ = flow_for_flow.final_eval(nocond, inner_rad, shift)
+                samples, _ = flow_for_flow.transform(input_data[0], input_data[1], input_data[1]+shift)
             plot_data(samples, top_save / f'flow_for_flow_output_{inner_rad}_plus_{shift}.png')
 
 
