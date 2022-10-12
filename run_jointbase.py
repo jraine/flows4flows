@@ -6,7 +6,6 @@ from ffflows.models import BaseFlow
 from ffflows.utils import set_trainable
 
 import torch
-from torch.utils.data import DataLoader
 
 from nflows import transforms
 from nflows.distributions import StandardNormal
@@ -34,24 +33,12 @@ def main(cfg : DictConfig) -> None:
 
     # Set device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    #train base
-    ## get base train dataset
-    # base_data = DataLoader(dataset=get_data(cfg.base_dist.data, num_points=1e4), 
-    #                        batch_size=cfg.base_dist.batch_size)
-    # print(len(base_data))
-    # val_base_data = DataLoader(dataset=get_data(cfg.base_dist.data, num_points=1e4), 
-    #                            batch_size=1_000)
-    from ffflows.data import plane
-    def get_loader(n_points=int(1e4), batch_size=128):
-        dataset = plane.ConditionalAnulus(num_points=n_points)
-        return DataLoader(dataset=dataset, batch_size=batch_size)
 
-    # base_data     = get_data(cfg.base_dist.data, num_points=1e4, batch_size=cfg.base_dist.batch_size)
-    # val_base_data = get_data(cfg.base_dist.data, num_points=1e4, batch_size=1000)
-    base_data = get_loader(n_points=int(1e4), batch_size=cfg.base_dist.batch_size)
-    val_base_data = get_loader(n_points=int(1e4), batch_size=1000)
+    # Get training data
+    base_data = get_data(cfg.base_dist.data, int(1e4), batch_size=cfg.base_dist.batch_size)
+    val_base_data = get_data(cfg.base_dist.data, int(1e4), batch_size=1000)
 
-    # else:
+    # Train base
     base_flow = BaseFlow(spline_inn(cfg.general.data_dim,
                                 nodes=cfg.base_dist.nnodes,
                                 num_blocks=cfg.base_dist.nblocks,
@@ -73,6 +60,7 @@ def main(cfg : DictConfig) -> None:
 
     set_trainable(base_flow,False)
 
+    # Train Flow4Flow
     f4flow = get_flow4flow(cfg.top_transformer.flow4flow,
                                          spline_inn(cfg.general.data_dim,
                                                     nodes=cfg.top_transformer.nnodes,

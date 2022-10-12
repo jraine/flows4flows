@@ -13,6 +13,8 @@ from nflows.flows import Flow
 
 from plot import plot_training
 
+from torch.utils.data import DataLoader
+
 def get_activation(name, *args, **kwargs):
     actdict = {
         "linear" : lambda x: x,
@@ -29,8 +31,7 @@ def get_activation(name, *args, **kwargs):
 
     return actdict[name.lower()]
 
-
-def get_data(name, num_points, batch_size, *args, **kwargs):
+def get_data(name, num_points, batch_size=None, *args, **kwargs):
     datadict = {
         "conditionalanulus" : ConditionalAnulus,
         "anulus" : Anulus,
@@ -39,8 +40,9 @@ def get_data(name, num_points, batch_size, *args, **kwargs):
         "checkerboard" : CheckerboardDataset
     }
     assert name.lower() in datadict.keys(), f"Currently {name} is not supported. Choose one of {datadict.keys()}"
-    dataset = datadict[name.lower()](num_points)
-    return DataLoader(dataset=dataset, batch_size=batch_size)
+    batch_size = num_points if batch_size is None else batch_size
+    return DataLoader(dataset=datadict[name.lower()](num_points), batch_size=batch_size)
+    # return datadict[name.lower()](num_points)
 
 def get_flow4flow(name, *args, **kwargs):
     f4fdict = {

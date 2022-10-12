@@ -7,7 +7,7 @@ general:
   ncond: 1
 
 base_dist:
-  data: Checkerboard
+  data: ConditionalAnulus
   ncond: 1
   load_path: None
   batch_size: 128
