@@ -116,7 +116,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
         valid_loss[epoch] = v_loss.mean()
 
         torch.save(model.state_dict(), save_path / f'epoch_{epoch}_valloss_{valid_loss[epoch]}')
-        print(f"Loss = {train_loss[epoch]:.3f},\t val_loss = {val_loss[epoch]:.3f}")
+        print(f"Loss = {train_loss[epoch]:.3f},\t val_loss = {valid_loss[epoch]:.3f}")
 
     ###insert saving of losses and plots and stuff
     if loss_fig:
