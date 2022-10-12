@@ -10,6 +10,21 @@ from nflows import transforms
 from nflows.distributions import StandardNormal
 from nflows.flows import Flow
 
+def get_activation(name, *args, **kwargs):
+    actdict = {
+        "linear" : lambda x: x,
+        "relu" : F.relu,
+        "leaky_relu" : F.leaky_relu,
+        "sigmoid" : F.sigmoid,
+        "selu" : F.selu,
+        "celu" : F.celu,
+        "elu" : F.elu,
+        "swish" : F.hardswish,
+        "softplus" : F.softplus,
+    }
+    assert name.lower() in actdict, f"Currently {name} is not supported"
+
+    return actdict[name.lower()]
 
 
 def get_data(name, *args, **kwargs):
@@ -80,8 +95,8 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
             else:
                 inputs, context_l, context_r = data, None, None
             
-            _, logprob = -model.transform(inputs, context_l=context_l, context_r=context_r)
-
+            logprob = -model.log_prob(inputs, context_l=context_l, context_r=context_r).mean()
+            
             logprob.backward()
             optimizer.step()
             scheduler.step()
@@ -97,7 +112,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
                 inputs, context_l, context_r = data, None, None
 
             with torch.no_grad():
-                v_loss[v_step] = -model.log_prob(inputs, context_l=context_l, context_r=context_r)
+                v_loss[v_step] = model.log_prob(inputs, context_l=context_l, context_r=context_r).mean()
         valid_loss[epoch] = v_loss.mean()
 
         torch.save(model.state_dict(), save_path / f'epoch_{epoch}_valloss_{valid_loss[epoch]}')

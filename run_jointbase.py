@@ -11,7 +11,7 @@ from nflows import transforms
 from nflows.distributions import StandardNormal
 from nflows.flows import Flow
 
-from utils import get_data, get_flow4flow, train, spline_inn
+from utils import get_activation, get_data, get_flow4flow, train, spline_inn
 from plot import plot_training, plot_data, plot_arrays
 
 def train_base(*args, **kwargs):
@@ -48,6 +48,11 @@ def main(cfg : DictConfig) -> None:
     base_data     = get_loader(batch_size=128)
     val_base_data = get_loader(n_points=int(1e4), batch_size=1000)
 
+    for key,value in cfg.general.items():
+        print(f"{key}: {type(value)}")
+    for key,value in cfg.base_dist.items():
+        print(f"{key}: {type(value)}")
+
     if pathlib.Path(cfg.base_dist.load_path).is_file():
         base_flow = torch.load(cfg.base_dist.load_path)
     else:
@@ -55,12 +60,13 @@ def main(cfg : DictConfig) -> None:
                                     nodes=cfg.base_dist.nnodes,
                                     num_blocks=cfg.base_dist.nblocks,
                                     num_stack=cfg.base_dist.nstack,
-                                    activation=cfg.base_dist.activation,
+                                    activation=get_activation(cfg.base_dist.activation),
                                     num_bins=cfg.base_dist.nbins, 
                                     context_features=cfg.general.ncond
                                    ),
                          StandardNormal([cfg.general.data_dim])
                         )
+
     print("Training base distribution")                        
     train_base(base_flow, base_data, val_base_data,
                cfg.base_dist.nepochs, cfg.base_dist.lr, cfg.general.ncond,
@@ -75,7 +81,7 @@ def main(cfg : DictConfig) -> None:
                                                     nodes=cfg.top_transformer.nnodes,
                                                     num_blocks=cfg.top_transformer.nblocks,
                                                     num_stack=cfg.top_transformer.nstack,
-                                                    activation=cfg.top_transformer.activation,
+                                                    activation=get_activation(cfg.top_transformer.activation),
                                                     num_bins=cfg.top_transformer.nbins, 
                                                     context_features=cfg.general.ncond
                                                    ),

@@ -167,3 +167,7 @@ class BaseFlow(flows.Flow):
         transform = self._transform.inverse if inverse else self._transform
         y, logabsdet = transform(inputs, context=context_l)
         return y, logabsdet
+
+    def log_prob(self, inputs, context_l, context_r, inverse=False):
+        _, logprob = self.transform(inputs,context_l,context_r,inverse)
+        return logprob
