@@ -1,10 +1,10 @@
 import torch
-
+import ..utils.shuffle_tensor as shuffle_tensor
 
 # TODO torch_utils
-def shuffle_tensor(data):
-    mx = torch.randperm(len(data), device=torch.device('cpu'))
-    return data[mx]
+# def shuffle_tensor(data):
+#     mx = torch.randperm(len(data), device=torch.device('cpu'))
+#     return data[mx]
 
 
 class PairedData(torch.utils.data.Dataset):

@@ -97,8 +97,9 @@ class FlowForFlow(abc.ABC, flows.Flow):
             log_prob = base_flow.log_prob(noise)
         else:
             log_prob = torch.zeros(len(noise)).to(noise)
-            log_prob[order] = self.base_flow_fwd.log_prob(noise[order], context=context_r[order])
-            log_prob[~order] = self.base_flow_inv.log_prob(noise[~order], context=context_l[~order])
+            for base_flow, mx in zip([self.base_flow_fwd,self.base_flow_fwd],[order, ~order]):
+                if torch.any(mx):
+                    log_prob[mx] = base_flow.log_prob(noise[mx], context=context_r[mx])
         return log_prob
 
     def log_prob(self, inputs, context_l=None, context_r=None, inverse=False):
@@ -160,3 +161,9 @@ class DiscreteBaseConditionFlowForFlow(FlowForFlow):
 
     def _direction_func(self, x, y):
         return None
+
+class BaseFlow(flows.Flow):
+    def transform(self, inputs, context_l, context_r, inverse=False):
+        transform = self._transform.inverse if inverse else self._transform
+        y, logabsdet = transform(inputs, context=context_l)
+        return y, logabsdet
