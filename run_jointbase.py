@@ -59,7 +59,7 @@ def main(cfg : DictConfig) -> None:
                                     num_bins=cfg.base_dist.nbins, 
                                     context_features=cfg.general.ncond
                                    ),
-                         StandardNormal([cfg.general.ncond])
+                         StandardNormal([cfg.general.data_dim])
                         )
     print("Training base distribution")                        
     train_base(base_flow, base_data, val_base_data,
