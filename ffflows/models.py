@@ -163,11 +163,13 @@ class DiscreteBaseConditionFlowForFlow(FlowForFlow):
         return None
 
 class BaseFlow(flows.Flow):
-    def transform(self, inputs, context_l, context_r, inverse=False):
+    def transform(self, inputs, context=None, context_l=None, context_r=None, inverse=False):
         transform = self._transform.inverse if inverse else self._transform
+        context = context_l if context_l is not None else context
         y, logabsdet = transform(inputs, context=context_l)
         return y, logabsdet
 
-    def log_prob(self, inputs, context_l, context_r, inverse=False):
+    def log_prob(self, inputs, context=None, context_l=None, context_r=None, inverse=False):
+        context = context_l if context_l is not None else context
         _, logprob = self.transform(inputs,context_l,context_r,inverse)
         return logprob

@@ -3,6 +3,7 @@ from omegaconf import DictConfig, OmegaConf
 import pathlib
 import ffflows
 from ffflows.models import BaseFlow
+from ffflows.utils import set_trainable
 
 import torch
 from torch.utils.data import DataLoader
@@ -45,36 +46,32 @@ def main(cfg : DictConfig) -> None:
         dataset = plane.ConditionalAnulus(num_points=n_points)
         return DataLoader(dataset=dataset, batch_size=batch_size)
 
-    base_data     = get_loader(batch_size=128)
+    # base_data     = get_data(cfg.base_dist.data, num_points=1e4, batch_size=cfg.base_dist.batch_size)
+    # val_base_data = get_data(cfg.base_dist.data, num_points=1e4, batch_size=1000)
+    base_data = get_loader(n_points=int(1e4), batch_size=cfg.base_dist.batch_size)
     val_base_data = get_loader(n_points=int(1e4), batch_size=1000)
 
-    for key,value in cfg.general.items():
-        print(f"{key}: {type(value)}")
-    for key,value in cfg.base_dist.items():
-        print(f"{key}: {type(value)}")
-
+    # else:
+    base_flow = BaseFlow(spline_inn(cfg.general.data_dim,
+                                nodes=cfg.base_dist.nnodes,
+                                num_blocks=cfg.base_dist.nblocks,
+                                num_stack=cfg.base_dist.nstack,
+                                activation=get_activation(cfg.base_dist.activation),
+                                num_bins=cfg.base_dist.nbins, 
+                                context_features=cfg.general.ncond
+                                ),
+                        StandardNormal([cfg.general.data_dim])
+                    )
     if pathlib.Path(cfg.base_dist.load_path).is_file():
-        base_flow = torch.load(cfg.base_dist.load_path)
+        print(f"Loading base from model: {cfg.base_dist.load_path}")
+        base_flow.load_state_dict(torch.load(cfg.base_dist.load_path))
     else:
-        base_flow = BaseFlow(spline_inn(cfg.general.data_dim,
-                                    nodes=cfg.base_dist.nnodes,
-                                    num_blocks=cfg.base_dist.nblocks,
-                                    num_stack=cfg.base_dist.nstack,
-                                    activation=get_activation(cfg.base_dist.activation),
-                                    num_bins=cfg.base_dist.nbins, 
-                                    context_features=cfg.general.ncond
-                                   ),
-                         StandardNormal([cfg.general.data_dim])
-                        )
+        print("Training base distribution")                        
+        train_base(base_flow, base_data, val_base_data,
+                cfg.base_dist.nepochs, cfg.base_dist.lr, cfg.general.ncond,
+                outputpath, name='base', device=device)
 
-    print("Training base distribution")                        
-    train_base(base_flow, base_data, val_base_data,
-               cfg.base_dist.nepochs, cfg.base_dist.lr, cfg.general.ncond,
-               outputpath, name='base', device=device)
-
-    exit(99)
-
-    ffflows.utils.set_trainable(base_flow,False)
+    set_trainable(base_flow,False)
 
     f4flow = get_flow4flow(cfg.top_transformer.flow4flow,
                                          spline_inn(cfg.general.data_dim,

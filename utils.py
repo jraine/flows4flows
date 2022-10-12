@@ -5,10 +5,13 @@ from torch.nn import functional as F
 
 from ffflows.models import DeltaFlowForFlow, ConcatFlowForFlow, DiscreteBaseFlowForFlow, DiscreteBaseConditionFlowForFlow
 from ffflows.data.plane import ConditionalAnulus, Anulus, ConcentricRings, FourCircles, CheckerboardDataset
+from ffflows.utils import shuffle_tensor
 
 from nflows import transforms
 from nflows.distributions import StandardNormal
 from nflows.flows import Flow
+
+from plot import plot_training
 
 def get_activation(name, *args, **kwargs):
     actdict = {
@@ -27,7 +30,7 @@ def get_activation(name, *args, **kwargs):
     return actdict[name.lower()]
 
 
-def get_data(name, *args, **kwargs):
+def get_data(name, num_points, batch_size, *args, **kwargs):
     datadict = {
         "conditionalanulus" : ConditionalAnulus,
         "anulus" : Anulus,
@@ -36,8 +39,8 @@ def get_data(name, *args, **kwargs):
         "checkerboard" : CheckerboardDataset
     }
     assert name.lower() in datadict.keys(), f"Currently {name} is not supported. Choose one of {datadict.keys()}"
-
-    return datadict[name.lower()](*args, **kwargs)
+    dataset = datadict[name.lower()](num_points)
+    return DataLoader(dataset=dataset, batch_size=batch_size)
 
 def get_flow4flow(name, *args, **kwargs):
     f4fdict = {
@@ -91,7 +94,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
             optimizer.zero_grad()
             if ncond is not None:
                 inputs, context_l = data
-                context_r = torch.rand_perm(context_l) if rand_perm_target else None
+                context_r = shuffle_tensor(context_l) if rand_perm_target else None
             else:
                 inputs, context_l, context_r = data, None, None
             
@@ -107,7 +110,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
         for v_step, data in enumerate(val_data):
             if ncond is not None:
                 inputs, context_l = data
-                context_r = torch.rand_perm(context_l) if rand_perm_target else None
+                context_r = shuffle_tensor(context_l) if rand_perm_target else None
             else:
                 inputs, context_l, context_r = data, None, None
 
@@ -115,7 +118,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
                 v_loss[v_step] = -model.log_prob(inputs, context_l=context_l, context_r=context_r).mean()
         valid_loss[epoch] = v_loss.mean()
 
-        torch.save(model.state_dict(), save_path / f'epoch_{epoch}_valloss_{valid_loss[epoch]}')
+        torch.save(model.state_dict(), save_path / f'epoch_{epoch}_valloss_{valid_loss[epoch]:.3f}.pt')
         print(f"Loss = {train_loss[epoch]:.3f},\t val_loss = {valid_loss[epoch]:.3f}")
 
     ###insert saving of losses and plots and stuff
