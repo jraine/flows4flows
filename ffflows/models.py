@@ -155,8 +155,9 @@ class FlowForFlow(abc.ABC, flows.Flow):
             inputs: Input Tensor for transformer
             context_l: Context tensor for samples from left of transformer
             context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
-            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left \
-or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.'''
+            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left
+            or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.
+        '''
         if context_l is None:
             context = None
         else:
@@ -175,8 +176,9 @@ or right base density. Default False (forward) Choose forward (defualt) or inver
             inputs: Input Tensor for transformer
             context_l: Context tensor for samples from left of transformer
             context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
-            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left \
-or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.'''
+            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left
+            or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.
+        '''
         order = self.direction_func(context_l, context_r)
         if order is None:
             outputs, logabsdet = self.__transform(inputs, context_l, context_r, inverse=inverse)
@@ -195,7 +197,8 @@ or right base density. Default False (forward) Choose forward (defualt) or inver
             noise: Input Tensor for base density
             context_l: Context tensor for samples from left of transformer
             context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
-            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left or right base density. Default False (forward)
+            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left
+            or right base density. Default False (forward)
         '''
         order = self.direction_func(context_l, context_r)
         if order is None:
@@ -214,8 +217,8 @@ or right base density. Default False (forward) Choose forward (defualt) or inver
             inputs: Input Tensor for transformer
             context_l: Context tensor for samples from left of transformer
             context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
-            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left \
-or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.
+            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left
+            or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.
         '''
 
         noise, logabsdet = self.transform(inputs, context_l, context_r, inverse)
@@ -240,13 +243,15 @@ class DeltaFlowForFlow(FlowForFlow):
     def _direction_func(self, x, y):
         return self.context_func(x, y) < 0
 
+
 class ConcatFlowForFlow(FlowForFlow):
 
     def context_func(self, x, y):
-        return torch.cat([x,y],axis=-1)
+        return torch.cat([x, y], axis=-1)
 
     def _direction_func(self, x, y):
         return self.context_func(x, y) < 0
+
 
 class DiscreteBaseFlowForFlow(FlowForFlow):
 
@@ -255,6 +260,7 @@ class DiscreteBaseFlowForFlow(FlowForFlow):
 
     def _direction_func(self, x, y):
         return None
+
 
 class DiscreteBaseConditionFlowForFlow(FlowForFlow):
 
