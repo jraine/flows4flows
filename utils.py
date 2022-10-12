@@ -112,7 +112,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
                 inputs, context_l, context_r = data, None, None
 
             with torch.no_grad():
-                v_loss[v_step] = model.log_prob(inputs, context_l=context_l, context_r=context_r).mean()
+                v_loss[v_step] = -model.log_prob(inputs, context_l=context_l, context_r=context_r).mean()
         valid_loss[epoch] = v_loss.mean()
 
         torch.save(model.state_dict(), save_path / f'epoch_{epoch}_valloss_{valid_loss[epoch]}')
