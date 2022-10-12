@@ -1,5 +1,8 @@
+from scipy.stats import binned_statistic_2d
+
 from pathlib import Path
 
+import numpy as np
 from matplotlib import pyplot as plt
 from nflows import transforms
 from nflows.distributions import StandardNormal
@@ -107,6 +110,54 @@ def no_more_grads(model):
     model.eval()
 
 
+def make_colormap(plt=False):
+    def arr_creat(upperleft, upperright, lowerleft, lowerright):
+        arr = np.linspace(np.linspace(lowerleft, lowerright, arrwidth),
+                          np.linspace(upperleft, upperright, arrwidth), arrheight, dtype=int)
+        return arr[:, :, None]
+
+    arrwidth = 256
+    arrheight = 256
+
+    r = arr_creat(0, 255, 0, 255)
+    g = arr_creat(0, 0, 255, 0)
+    b = arr_creat(255, 255, 0, 0)
+
+    img = np.concatenate([r, g, b], axis=2)
+
+    if plt:
+        plt.imshow(img, origin="lower")
+        plt.axis("off")
+
+        plt.show()
+    return img
+
+
+def assign_colors(img, input_data):
+    dt = tensor2numpy(input_data)
+    bins = np.linspace(-4, 4, 256)
+    _, _, _, color_ind = binned_statistic_2d(dt[:, 0], dt[:, 1], dt[:, 1], bins=(bins, bins),
+                                             expand_binnumbers=True)
+    return img[color_ind[0], color_ind[1]]
+
+
+def add_scatter(ax, data, colors):
+    dt = tensor2numpy(data)
+    ax.scatter(dt[:, 0], dt[:, 1], s=0.1, c=colors / 256, alpha=0.8)
+
+
+def plot_arrays(dict_of_data, sv_nm, colors=None):
+    n_figs = len(dict_of_data)
+    fig, ax = plt.subplots(1, n_figs, figsize=(6 * n_figs, 5))
+    for i, (nm, data) in enumerate(dict_of_data.items()):
+        if colors is None:
+            img = make_colormap()
+            colors = assign_colors(img, data)
+        add_scatter(ax[i], data, colors)
+        ax[i].set_title(nm)
+    fig.savefig(sv_nm)
+
+
 def move_dists():
     # Hyperparameters
     batch_size = 128
@@ -202,7 +253,7 @@ def move_dists():
     models_save.mkdir(exist_ok=True)
     train_loader = DataLoader(dataset=train_dataset.paired(), batch_size=batch_size)
     valid_loader = DataLoader(dataset=valid_dataset.paired(), batch_size=batch_size)
-    train(flow_for_flow, train_loader, valid_loader, 50, 0.001, device, models_save, top_save / 'loss_f4f.png')
+    train(flow_for_flow, train_loader, valid_loader, 30, 0.001, device, models_save, top_save / 'loss_f4f.png')
 
     n_points = int(1e6)
     n_points = int(1e5)
@@ -213,6 +264,14 @@ def move_dists():
     plot_data(test_data.right().data, top_save / f'flow_for_flow_target.png')
     left_to_right, _ = flow_for_flow.transform(input_data, inverse=True)
     plot_data(left_to_right, top_save / f'left_to_right.png')
+
+    left_bd_enc = flow_for_flow.base_flow_fwd.transform_to_noise(input_data)
+    right_bd_dec, _ = flow_for_flow.base_flow_inv._transform.inverse(left_bd_enc)
+    plot_arrays({ 
+        'Input Data': input_data,
+        'FFF': left_to_right,
+        'BdTransfer': right_bd_dec
+    }, top_save / 'colored_lr.png')
 
 
 if __name__ == '__main__':
