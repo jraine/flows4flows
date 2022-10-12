@@ -267,7 +267,7 @@ def move_dists():
 
     left_bd_enc = flow_for_flow.base_flow_fwd.transform_to_noise(input_data)
     right_bd_dec, _ = flow_for_flow.base_flow_inv._transform.inverse(left_bd_enc)
-    plot_arrays({
+    plot_arrays({ 
         'Input Data': input_data,
         'FFF': left_to_right,
         'BdTransfer': right_bd_dec
