@@ -15,6 +15,10 @@ from nflows.flows import Flow
 from utils import get_activation, get_data, get_flow4flow, train, spline_inn
 from plot import plot_training, plot_data, plot_arrays
 
+import numpy as np
+np.random.seed(42)
+torch.manual_seed(42)
+
 def train_base(*args, **kwargs):
     return train(*args, **kwargs, rand_perm_target=False)
 
@@ -64,6 +68,8 @@ def main(cfg : DictConfig) -> None:
                 outputpath, name='base', device=device)
 
     set_trainable(base_flow,False)
+    for con in [0.25, 0.5, 0.75]:
+        plot_data(base_flow.sample(int(1e5),context=con), outputpath / f'base_density_{con}.png')
 
     # Train Flow4Flow
     f4flow = get_flow4flow(cfg.top_transformer.flow4flow,
@@ -85,6 +91,8 @@ def main(cfg : DictConfig) -> None:
                 cfg.base_dist.nepochs, cfg.base_dist.lr, cfg.general.ncond,
                 outputpath, name='f4f', device=device)
 
+    test_data = DataLoader(get_data(cfg.base_dist.data, int(1e5)), batch_size=1000)
+    f4flow.transform(test_data)
 
 if __name__ == "__main__":
     main()
