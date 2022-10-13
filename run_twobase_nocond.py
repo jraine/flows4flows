@@ -38,34 +38,47 @@ def main(cfg : DictConfig) -> None:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Get training data
-    base_data_l,val_base_data_l = None,None
-    base_data_r,val_base_data_r = None,None
-    # base_data_l = get_data(cfg.base_dist.data, int(1e4), batch_size=cfg.base_dist.batch_size)
-    # val_base_data_l = get_data(cfg.base_dist.data, int(1e4), batch_size=1000)
-    cfg.general.ncond = None if cfg.general.ncond == 0 else cfg.general.ncond
+    base_data_l,base_data_r = [get_data(bd_conf.data, int(1e4), batch_size=bd_conf.batch_size) for bd_conf in [cfg.base_dist.left,cfg.base_dist.right]]
+    val_base_data_l,val_base_data_r = [get_data(bd_conf.data, int(1e4), batch_size=1000) for bd_conf in [cfg.base_dist.left,cfg.base_dist.right]]
+    # base_data_l,val_base_data_l = None,None
+    # base_data_r,val_base_data_r = None,None
+
+    ncond_base = None if cfg.general.ncond == 0 else cfg.general.ncond
+    ncond_f4f  = ncond_base*2 if ncond_base is not None else None
 
     # Train base1
-    base_flow_l,base_flow_r = None,None
+    base_flow_l,base_flow_r = [BaseFlow(spline_inn(cfg.general.data_dim,
+                                                    nodes=bd_conf.nnodes,
+                                                    num_blocks=bd_conf.nblocks,
+                                                    num_stack=bd_conf.nstack,
+                                                    activation=get_activation(bd_conf.activation),
+                                                    num_bins=bd_conf.nbins, 
+                                                    context_features=ncond_base
+                                                ),
+                                        StandardNormal([cfg.general.data_dim])
+                                        ) for bd_conf in [cfg.base_dist.left,cfg.base_dist.right]
+                              ]
+    # base_flow_l,base_flow_r = None, None
     for label,base_data,val_base_data,bd_conf,base_flow in zip(['left','right'],
                                        [base_data_l, base_data_r],
                                        [val_base_data_l, val_base_data_r],
                                        [cfg.base_dist.left,cfg.base_dist.right],
                                        [base_flow_l,base_flow_r]):
 
-        base_data = get_data(bd_conf.data, int(1e4), batch_size=bd_conf.batch_size)
-        val_base_data = get_data(bd_conf.data, int(1e4), batch_size=1000)
+        # base_data = get_data(bd_conf.data, int(1e4), batch_size=bd_conf.batch_size)
+        # val_base_data = get_data(bd_conf.data, int(1e4), batch_size=1000)
 
 
-        base_flow = BaseFlow(spline_inn(cfg.general.data_dim,
-                                        nodes=bd_conf.nnodes,
-                                        num_blocks=bd_conf.nblocks,
-                                        num_stack=bd_conf.nstack,
-                                        activation=get_activation(bd_conf.activation),
-                                        num_bins=bd_conf.nbins, 
-                                        context_features=cfg.general.ncond
-                                    ),
-                             StandardNormal([cfg.general.data_dim])
-                            )
+        # base_flow = BaseFlow(spline_inn(cfg.general.data_dim,
+        #                                 nodes=bd_conf.nnodes,
+        #                                 num_blocks=bd_conf.nblocks,
+        #                                 num_stack=bd_conf.nstack,
+        #                                 activation=get_activation(bd_conf.activation),
+        #                                 num_bins=bd_conf.nbins, 
+        #                                 context_features=cfg.general.ncond
+        #                             ),
+        #                      StandardNormal([cfg.general.data_dim])
+        #                     )
         
         
         if pathlib.Path(bd_conf.load_path).is_file():
@@ -74,7 +87,7 @@ def main(cfg : DictConfig) -> None:
         else:
             print(f"Training base_{label} distribution")                        
             train_base(base_flow, base_data, val_base_data,
-                    bd_conf.nepochs, bd_conf.lr, cfg.general.ncond,
+                    bd_conf.nepochs, bd_conf.lr, ncond_base,
                     outputpath, name=f'base_{label}', device=device)
 
         set_trainable(base_flow,False)
@@ -88,20 +101,20 @@ def main(cfg : DictConfig) -> None:
                                                     num_stack=cfg.top_transformer.nstack,
                                                     activation=get_activation(cfg.top_transformer.activation),
                                                     num_bins=cfg.top_transformer.nbins, 
-                                                    context_features=cfg.general.ncond
+                                                    context_features=ncond_f4f
                                                    ),
                                          base_flow_l,
                                          base_flow_r)
      
-    
+    print(base_data_l,val_base_data_l)
     print("Training Flow4Flow model forwards")
     train_f4f_forward(f4flow, base_data_l, val_base_data_l,
-                      cfg.top_transformer.nepochs, cfg.top_transformer.lr, cfg.general.data_dim,
+                      cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
                       outputpath, name='f4f_fwd', device=device)
     
     print("Training Flow4Flow model backwards")
     train_f4f_inverse(f4flow, base_data_r, val_base_data_r,
-                      cfg.top_transformer.nepochs, cfg.top_transformer.lr, cfg.general.data_dim,
+                      cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
                       outputpath, name='f4f_inv', device=device)
 
 
