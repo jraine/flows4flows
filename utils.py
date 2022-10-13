@@ -4,7 +4,7 @@ import torch
 from torch.nn import functional as F
 
 from ffflows.models import DeltaFlowForFlow, ConcatFlowForFlow, DiscreteBaseFlowForFlow, DiscreteBaseConditionFlowForFlow
-from ffflows.data.plane import ConditionalAnulus, Anulus, ConcentricRings, FourCircles, CheckerboardDataset
+from ffflows.data.plane import ConditionalAnulus, Anulus, ConcentricRings, FourCircles, CheckerboardDataset, TwoSpiralsDataset
 from ffflows.utils import shuffle_tensor
 
 from nflows import transforms
@@ -28,7 +28,7 @@ def get_activation(name, *args, **kwargs):
         "swish" : F.hardswish,
         "softplus" : F.softplus,
     }
-    assert name.lower() in actdict, f"Currently {name} is not supported"
+    assert name.lower() in actdict, f"Currently {name} is not supported.  Choose one of '{*actdict.keys()}'"
 
     return actdict[name.lower()]
 
@@ -38,9 +38,10 @@ def get_data(name, num_points, *args, **kwargs):
         "anulus" : Anulus,
         "concentricrings" : ConcentricRings,
         "fourcircles" : FourCircles,
-        "checkerboard" : CheckerboardDataset
+        "checkerboard" : CheckerboardDataset,
+        "spirals" : TwoSpiralsDataset,
     }
-    assert name.lower() in datadict.keys(), f"Currently {name} is not supported. Choose one of {datadict.keys()}"
+    assert name.lower() in datadict.keys(), f"Currently {name} is not supported. Choose one of '{*datadict.keys()}'"
     # batch_size = num_points if batch_size is None else batch_size
     return datadict[name.lower()](num_points)
     # return datadict[name.lower()](num_points)
@@ -52,7 +53,7 @@ def get_flow4flow(name, *args, **kwargs):
         "discretebase" : DiscreteBaseFlowForFlow,
         "discretebasecondition" : DiscreteBaseConditionFlowForFlow,
     }
-    assert name.lower() in f4fdict, f"Currently {f4fdict} is not supported"
+    assert name.lower() in f4fdict, f"Currently {f4fdict} is not supported. Choose one of '{*f4fdict.keys()}'"
 
     return f4fdict[name](*args, **kwargs)
 
