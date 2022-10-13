@@ -46,6 +46,7 @@ top_transformer:
   nepochs: 40
   flow4flow: discretebase
   direction: iterate
+  iteration_steps: 5
   gclip: 5
   nstack: 4
   nblocks: 4
