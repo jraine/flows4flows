@@ -12,6 +12,7 @@ from nflows.distributions import StandardNormal
 from nflows.flows import Flow
 
 from plot import plot_training
+import matplotlib.pyplot as plt
 
 from torch.utils.data import DataLoader
 
