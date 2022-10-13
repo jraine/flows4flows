@@ -2,13 +2,17 @@ output:
   save_dir: /srv/beegfs/scratch/groups/rodem/flows4flows/
   name: test
 
+general:
+  data_dim: 2
+  ncond: 0
+
 base_dist:
-  base_dist_l:
+  left:
     data: Checkerboard
     load_path: None
     batch_size: 128
     lr: 1e-4
-    epochs: 40
+    nepochs: 40
     gclip: 5
     nstack: 4
     nblocks: 4
@@ -19,12 +23,12 @@ base_dist:
     coupling_width: 32
     coupling_depth: 2
 
-  base_dist_r:
+  right:
     data: ConcentricRings
     load_path: None
     batch_size: 128
     lr: 1e-4
-    epochs: 40
+    nepochs: 40
     gclip: 5
     nstack: 4
     nblocks: 4
@@ -39,7 +43,8 @@ top_transformer:
   load_path: None
   batch_size: 128
   lr: 1e-4
-  epochs: 40
+  nepochs: 40
+  flow4flow: discretebase
   direction: iterate
   gclip: 5
   nstack: 4

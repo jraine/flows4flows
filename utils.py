@@ -75,7 +75,7 @@ def spline_inn(inp_dim, nodes=128, num_blocks=2, num_stack=3, tail_bound=3.5, ta
     return transforms.CompositeTransform(transform_list[:-1])
 
 
-def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, name, rand_perm_target, loss_fig=True, device='cpu'):
+def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, name, rand_perm_target=False, inverse=False, loss_fig=True, device='cpu'):
     
     save_path = pathlib.Path(path / name)
     save_path.mkdir(parents=True,exist_ok=True)
@@ -100,7 +100,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
             else:
                 inputs, context_l, context_r = data, None, None
             
-            logprob = -model.log_prob(inputs, context_l=context_l, context_r=context_r).mean()
+            logprob = -model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=inverse).mean()
             
             logprob.backward()
             optimizer.step()
@@ -117,7 +117,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
                 inputs, context_l, context_r = data, None, None
 
             with torch.no_grad():
-                v_loss[v_step] = -model.log_prob(inputs, context_l=context_l, context_r=context_r).mean()
+                v_loss[v_step] = -model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=inverse).mean()
         valid_loss[epoch] = v_loss.mean()
 
         torch.save(model.state_dict(), save_path / f'epoch_{epoch}_valloss_{valid_loss[epoch]:.3f}.pt')
@@ -127,7 +127,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
     if loss_fig:
         # Training and validation losses
         fig = plot_training(train_loss, valid_loss)
-        fig.savefig(sv_nm)
+        fig.savefig(f'{name}_loss.png')
         # fig.show()
         plt.close(fig)
 

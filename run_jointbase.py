@@ -71,12 +71,14 @@ def main(cfg : DictConfig) -> None:
                                                     context_features=cfg.general.ncond
                                                    ),
                                          base_flow)
-     
-    
-    print("Training Flow4Flow model")
-    train_f4f(f4flow, base_data, val_base_data,
-               cfg.base_dist.nepochs, cfg.base_dist.lr, cfg.general.data_dim,
-               outputpath, name='f4f', device=device)
+    if pathlib.Path(cfg.top_transformer.load_path).is_file():
+        print(f"Loading Flow4Flow from model: {cfg.top_transformer.load_path}")
+        f4flow.load_state_dict(torch.load(cfg.top_transformer.load_path))
+    else:
+        print("Training Flow4Flow model")
+        train_f4f(f4flow, base_data, val_base_data,
+                cfg.base_dist.nepochs, cfg.base_dist.lr, cfg.general.data_dim,
+                outputpath, name='f4f', device=device)
 
 
 if __name__ == "__main__":
