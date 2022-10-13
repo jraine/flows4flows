@@ -128,7 +128,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
     if loss_fig:
         # Training and validation losses
         fig = plot_training(train_loss, valid_loss)
-        fig.savefig(f'{name}_loss.png')
+        fig.savefig(save_path / f'{name}_loss.png')
         # fig.show()
         plt.close(fig)
 

@@ -15,6 +15,8 @@ from utils import get_activation, get_data, get_flow4flow, train, spline_inn
 import matplotlib.pyplot as plt
 from plot import plot_training, plot_data, plot_arrays
 
+from ffflows.data.dist_to_dist import UnconditionalDataToData
+
 def train_base(*args, **kwargs):
     return train(*args, **kwargs)
 
@@ -24,7 +26,7 @@ def train_f4f_forward(*args, **kwargs):
 def train_f4f_inverse(*args, **kwargs):
     return train(*args, **kwargs, rand_perm_target=True, inverse=True)
 
-def train_f4f_iterate(model, train_data_l, val_data_l, train_data_r, val_data_r,
+def train_f4f_iterate(model, train_dataset, val_dataset,
                       n_epochs, learning_rate, ncond, path, name,
                       iteration_steps = 1,
                       rand_perm_target=False, inverse=False, loss_fig=True, device='cpu'):
@@ -36,8 +38,8 @@ def train_f4f_iterate(model, train_data_l, val_data_l, train_data_r, val_data_r,
 
     for step in range((steps:=n_epochs // iteration_steps)):
         print(f"Iteration {step+1}/{steps}")
-        for train_data,val_data,loss,val_loss,ddir,inv in zip([train_data_l,train_data_r],
-                                                              [val_data_l,val_data_r],
+        for train_data,val_data,loss,val_loss,ddir,inv in zip([train_dataset.left(),train_dataset.right()],
+                                                              [val_dataset.left(),val_dataset.right()],
                                                               [loss_fwd,loss_inv],
                                                               [val_loss_fwd,val_loss_inv],
                                                               ['fwd','inv'],
@@ -55,7 +57,7 @@ def train_f4f_iterate(model, train_data_l, val_data_l, train_data_r, val_data_r,
                                       [val_loss_fwd,val_loss_inv],
                                       ['fwd','inv']):
             fig = plot_training(loss, val_loss)
-            fig.savefig(f'{name}_{ddir}_loss.png')
+            fig.savefig(path / f'{name}_{ddir}_loss.png')
             # fig.show()
             plt.close(fig)
     
@@ -127,25 +129,29 @@ def main(cfg : DictConfig) -> None:
                                          base_flow_l,
                                          base_flow_r)   
     
+    train_data = UnconditionalDataToData(base_data_l,base_data_r) if ncond_f4f is None else ConditionalDataToData(base_data_l,base_data_r)
+    val_data   = UnconditionalDataToData(val_base_data_l,val_base_data_r) if ncond_f4f is None else ConditionalDataToData(val_base_data_l,val_base_data_r)
+
     if((direction := cfg.top_transformer.direction.lower()) == 'iterate'):
         print("Training Flow4Flow model iteratively")
         iteration_steps = cfg.top_transformer.iteration_steps if 'iteration_steps' in cfg.top_transformer else 1
-        train_f4f_iterate(f4flow, base_data_l, val_base_data_l,
-                          base_data_r, val_base_data_r,
+        train_f4f_iterate(f4flow, train_data, val_data,
                           cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
                           outputpath, iteration_steps=iteration_steps, name='f4f', device=device)
     else:
-        if(direction == 'forward' | direction == 'both'):
+        if(direction == 'forward' or direction == 'both'):
             print("Training Flow4Flow model forwards")
-            train_f4f_forward(f4flow, base_data_l, val_base_data_l,
+            train_f4f_forward(f4flow, train_data.left(), val_data.left(),
                             cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
                             outputpath, name='f4f_fwd', device=device)
         
-        if(direction == 'inverse' | direction == 'both'):
+        if(direction == 'inverse' or direction == 'both'):
             print("Training Flow4Flow model backwards")
-            train_f4f_inverse(f4flow, base_data_r, val_base_data_r,
+            train_f4f_inverse(f4flow, train_data.right(), val_data.right(),
                             cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
                             outputpath, name='f4f_inv', device=device)
+
+
 
 
 if __name__ == "__main__":
