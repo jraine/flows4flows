@@ -39,3 +39,22 @@ class UnconditionalDataToData:
 
     def paired(self):
         return PairedData(*[shuffle_tensor(data) for data in (self.data1, self.data2)])
+
+class ConditionalDataToData:
+
+    def __init__(self, data1, data2):
+        self.data1 = data1
+        self.data2 = data2
+
+    def left(self):
+        return self.data1
+
+    def right(self):
+        return self.data2
+
+    def paired(self):
+        #assuming data is of form (data,condition)
+        data1, data2 = [shuffle_tensor(data) for data in (self.data1, self.data2)]
+        data1_cond_target = (*data_l,data_r[0])
+        data2_cond_target = (*data_l,data_l[0])
+        return PairedData(data1_cond_target,data2_cond_target)
