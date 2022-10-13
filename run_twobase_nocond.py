@@ -95,12 +95,12 @@ def main(cfg : DictConfig) -> None:
      
     
     print("Training Flow4Flow model forwards")
-    train_f4f_forward(f4flow, base_data, val_base_data,
+    train_f4f_forward(f4flow, base_data_l, val_base_data_l,
                       cfg.top_transformer.nepochs, cfg.top_transformer.lr, cfg.general.data_dim,
                       outputpath, name='f4f_fwd', device=device)
     
     print("Training Flow4Flow model backwards")
-    train_f4f_inverse(f4flow, base_data, val_base_data,
+    train_f4f_inverse(f4flow, base_data_r, val_base_data_r,
                       cfg.top_transformer.nepochs, cfg.top_transformer.lr, cfg.general.data_dim,
                       outputpath, name='f4f_inv', device=device)
 
