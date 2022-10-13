@@ -92,7 +92,7 @@ def main(cfg : DictConfig) -> None:
                 outputpath, name='f4f', device=device)
 
     test_data = DataLoader(get_data(cfg.base_dist.data, int(1e5)), batch_size=1000)
-    f4flow.transform(test_data)
+    # f4flow.transform(test_data)
 
 if __name__ == "__main__":
     main()
