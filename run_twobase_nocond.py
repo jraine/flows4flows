@@ -23,6 +23,35 @@ def train_f4f_forward(*args, **kwargs):
 def train_f4f_inverse(*args, **kwargs):
     return train(*args, **kwargs, rand_perm_target=True, inverse=True)
 
+def train_f4f_iterate(model, train_data_l, val_data_l, train_data_r, val_data_r,
+                      n_epochs, learning_rate, ncond, path, name,
+                      rand_perm_target=False, inverse=False, loss_fig=True, device='cpu'):
+    
+    loss_fwd = torch.zeros(n_epochs)
+    val_loss_fwd = torch.zeros(n_epochs)
+    loss_inv = torch.zeros(n_epochs)
+    val_loss_inv = torch.zeros(n_epochs)
+
+    for step in range(n_epochs):
+        print(f"Iteration {step+1}/{n_epochs}")
+        print("Forward")
+        loss_fwd[step], val_loss_fwd[step] = train(model, train_data_l, val_data_l, 1, learning_rate,
+                                                   ncond, path, f'{name}_fwd_step_{step}',
+                                                   rand_perm_target=rand_perm_target, inverse=False, loss_fig=False, device=device)
+        print("Inverse")
+        loss_inv[step], val_loss_inv[step] = train(model, train_data_r, val_data_r, 1, learning_rate,
+                                                   ncond, path, f'{name}_fwd_step_{step}',
+                                                   rand_perm_target=rand_perm_target, inverse=True, loss_fig=False, device=device)
+    if loss_fig:
+        for loss,val_loss,ddir in zip([loss_fwd,loss_inv],
+                                      [val_loss_fwd,val_loss_inv],
+                                      ['fwd','inv']):
+            fig = plot_training(loss, val)
+            fig.savefig(f'{name}_{ddir}_loss.png')
+            # fig.show()
+            plt.close(fig)
+    
+    model.eval()
 
 @hydra.main(version_base=None, config_path="conf/", config_name="nocond_default")
 def main(cfg : DictConfig) -> None:
@@ -104,18 +133,26 @@ def main(cfg : DictConfig) -> None:
                                                     context_features=ncond_f4f
                                                    ),
                                          base_flow_l,
-                                         base_flow_r)
-     
-    print(base_data_l,val_base_data_l)
-    print("Training Flow4Flow model forwards")
-    train_f4f_forward(f4flow, base_data_l, val_base_data_l,
-                      cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
-                      outputpath, name='f4f_fwd', device=device)
+                                         base_flow_r)   
     
-    print("Training Flow4Flow model backwards")
-    train_f4f_inverse(f4flow, base_data_r, val_base_data_r,
-                      cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
-                      outputpath, name='f4f_inv', device=device)
+    if((direction := cfg.top_transformer.direction.lower()) == 'iterate'):
+        print("Training Flow4Flow model iteratively")
+        train_f4f_iterate(f4flow, base_data_l, val_base_data_l,
+                          base_data_r, val_base_data_r,
+                          cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
+                          outputpath, name='f4f_fwd', device=device)
+    else:
+        if(direction == 'forward' | direction == 'both'):
+            print("Training Flow4Flow model forwards")
+            train_f4f_forward(f4flow, base_data_l, val_base_data_l,
+                            cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
+                            outputpath, name='f4f_fwd', device=device)
+        
+        if(direction == 'inverse' | direction == 'both'):
+            print("Training Flow4Flow model backwards")
+            train_f4f_inverse(f4flow, base_data_r, val_base_data_r,
+                            cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
+                            outputpath, name='f4f_inv', device=device)
 
 
 if __name__ == "__main__":
