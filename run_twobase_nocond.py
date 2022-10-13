@@ -18,6 +18,10 @@ from plot import plot_training, plot_data, plot_arrays
 
 from ffflows.data.dist_to_dist import UnconditionalDataToData
 
+import numpy as np
+np.random.seed(42)
+torch.manual_seed(42)
+
 def train_base(*args, **kwargs):
     return train(*args, **kwargs)
 
@@ -116,6 +120,8 @@ def main(cfg : DictConfig) -> None:
                     outputpath, name=f'base_{label}', device=device)
 
         set_trainable(base_flow,False)
+
+        plot_data(base_flow.sample(int(1e5)), outputpath / f'base_density_{direction}.png')
                             
 
     # Train Flow4Flow
@@ -142,19 +148,25 @@ def main(cfg : DictConfig) -> None:
                  #else ConditionalDataToData(get_data(cfg.base_dist.left.data, int(1e4)),
                  #                           get_data(cfg.base_dist.right.data, int(1e4)))
 
-    if((direction := cfg.top_transformer.direction.lower()) == 'iterate'):
+    if pathlib.Path(top_transformer.load_path).is_file():
+        print(f"Loading Flow4Flow from model: {top_transformer.load_path}")
+        f4flow.load_state_dict(torch.load(top_transformer.load_path))     
+
+    elif((direction := cfg.top_transformer.direction.lower()) == 'iterate'):
         print("Training Flow4Flow model iteratively")
         iteration_steps = cfg.top_transformer.iteration_steps if 'iteration_steps' in cfg.top_transformer else 1
         train_f4f_iterate(f4flow, train_data, val_data, cfg.top_transformer.batch_size,
                           cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
                           outputpath, iteration_steps=iteration_steps,
                           name='f4f', device=device)
+
     elif(direction == 'alternate'):
         print("Training Flow4Flow model alternating every batch")
         train_batch_iterate(f4flow, DataLoader(train_data.paired(),batch_size=cfg.top_transformer.batch_size),
                             DataLoader(val_data.paired(),batch_size=cfg.top_transformer.batch_size),
                             cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
                             outputpath, name='f4f', device=device)
+                            
     else:
         if(direction == 'forward' or direction == 'both'):
             print("Training Flow4Flow model forwards")
@@ -171,7 +183,26 @@ def main(cfg : DictConfig) -> None:
                               outputpath, name='f4f_inv', device=device)
 
 
+    test_data = UnconditionalDataToData(get_data(cfg.base_dist.left.data, int(1e4)),
+                                         get_data(cfg.base_dist.right.data, int(1e4)))
+    
+    left_data = test_data.left().data
+    right_data = test_data.right().data
 
+    plot_data(left_data, outputpath / f'flow_for_flow_left.png')
+    plot_data(right_data, outputpath / f'flow_for_flow_right.png')
+    left_to_right, _ = flow_for_flow.transform(left_data)
+    plot_data(left_to_right, top_save / f'left_to_right.png')
+    right_to_left, _ = flow_for_flow.transform(right_data, inverse=True)
+    plot_data(right_to_left, top_save / f'right_to_left.png')
+
+    leftt_bd_enc = flow_for_flow.base_flow_inv.transform_to_noise(left_data)
+    right_bd_dec, _ = flow_for_flow.base_flow_fwd._transform.inverse(right_bd_enc)
+    plot_arrays({ 
+        'Input Data': input_data,
+        'FFF': left_to_right,
+        'BdTransfer': right_bd_dec
+    }, outputpath / 'colored_lr.png')
 
 if __name__ == "__main__":
     main()
