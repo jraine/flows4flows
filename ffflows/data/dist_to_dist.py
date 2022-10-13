@@ -21,7 +21,7 @@ class PairedData(torch.utils.data.Dataset):
         self.y = self.y.cpu()
 
 
-class UnconditionalDataToData:
+class UnconditionalDataToData(object):
 
     def __init__(self, data1, data2):
         self.data1 = data1
@@ -36,7 +36,7 @@ class UnconditionalDataToData:
     def paired(self):
         return PairedData(*[shuffle_tensor(data) for data in (self.data1, self.data2)])
 
-class ConditionalDataToData:
+class ConditionalDataToData(UnconditionalDataToData):
 
     def __init__(self, data1, data2):
         self.data1 = data1
