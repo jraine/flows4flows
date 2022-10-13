@@ -6,6 +6,7 @@ from ffflows.models import BaseFlow
 from ffflows.utils import set_trainable
 
 import torch
+from torch.utils.data import DataLoader
 
 from nflows import transforms
 from nflows.distributions import StandardNormal
@@ -39,8 +40,8 @@ def main(cfg : DictConfig) -> None:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Get training data
-    base_data = get_data(cfg.base_dist.data, int(1e4), batch_size=cfg.base_dist.batch_size)
-    val_base_data = get_data(cfg.base_dist.data, int(1e4), batch_size=1000)
+    base_data = DataLoader(dataset=get_data(cfg.base_dist.data, int(1e4)), batch_size=cfg.base_dist.batch_size)
+    val_base_data = DataLoader(get_data(cfg.base_dist.data, int(1e4)), batch_size=1000)
 
     # Train base
     base_flow = BaseFlow(spline_inn(cfg.general.data_dim,

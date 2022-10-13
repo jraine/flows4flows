@@ -32,7 +32,7 @@ def get_activation(name, *args, **kwargs):
 
     return actdict[name.lower()]
 
-def get_data(name, num_points, batch_size=None, *args, **kwargs):
+def get_data(name, num_points, *args, **kwargs):
     datadict = {
         "conditionalanulus" : ConditionalAnulus,
         "anulus" : Anulus,
@@ -41,8 +41,8 @@ def get_data(name, num_points, batch_size=None, *args, **kwargs):
         "checkerboard" : CheckerboardDataset
     }
     assert name.lower() in datadict.keys(), f"Currently {name} is not supported. Choose one of {datadict.keys()}"
-    batch_size = num_points if batch_size is None else batch_size
-    return DataLoader(dataset=datadict[name.lower()](num_points), batch_size=batch_size)
+    # batch_size = num_points if batch_size is None else batch_size
+    return datadict[name.lower()](num_points)
     # return datadict[name.lower()](num_points)
 
 def get_flow4flow(name, *args, **kwargs):
@@ -119,6 +119,79 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
 
             with torch.no_grad():
                 v_loss[v_step] = -model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=inverse).mean()
+        valid_loss[epoch] = v_loss.mean()
+
+        torch.save(model.state_dict(), save_path / f'epoch_{epoch}_valloss_{valid_loss[epoch]:.3f}.pt')
+        print(f"Loss = {train_loss[epoch]:.3f},\t val_loss = {valid_loss[epoch]:.3f}")
+
+    ###insert saving of losses and plots and stuff
+    if loss_fig:
+        # Training and validation losses
+        fig = plot_training(train_loss, valid_loss)
+        fig.savefig(save_path / f'{name}_loss.png')
+        # fig.show()
+        plt.close(fig)
+
+    model.eval()        
+    return train_loss, valid_loss
+
+
+def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, ncond, path, name, rand_perm_target=False, inverse=False, loss_fig=True, device='cpu'):
+    # try:
+    #     train_data.paired() and val_data.paired()
+    # except(AttributeError, TypeError):
+    #   raise AssertionError('Training data should be a DataToData object')
+
+    save_path = pathlib.Path(path / name)
+    save_path.mkdir(parents=True,exist_ok=True)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    num_steps = len(train_data) * n_epochs
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=num_steps, last_epoch=-1,
+                                                           eta_min=0)
+    train_loss = torch.zeros(n_epochs)
+    valid_loss = torch.zeros(n_epochs)
+    for epoch in range(n_epochs):
+        print(f"Epoch {epoch+1}/{n_epochs}")
+        t_loss = []
+
+        for step, pairdata in enumerate(train_data):
+            model.train()
+            if step % 2 == 0 + 1*int(inverse):
+                data = pairdata[0]
+                inv = False
+            else:
+                data = pairdata[1]
+                inv = True
+
+            optimizer.zero_grad()
+            if ncond is not None:
+                inputs, context_l, context_r = data[ddir]
+                if rand_perm_target:
+                    context_r = shuffle_tensor(context_l)
+            else:
+                inputs, context_l, context_r = data, None, None
+            
+            logprob = -model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=inv).mean()
+            
+            logprob.backward()
+            optimizer.step()
+            scheduler.step()
+            t_loss.append(logprob.item())
+        
+        train_loss[epoch] = torch.tensor(t_loss).mean()
+        v_loss = torch.zeros(len(val_data))
+        for v_step, data in enumerate(val_data):
+            for ddir in [0,1]:
+                if ncond is not None:
+                    inputs, context_l, context_r = data[ddir]
+                    if rand_perm_target:
+                        context_r = shuffle_tensor(context_l)
+                else:
+                    inputs, context_l, context_r = data[ddir], None, None
+
+                with torch.no_grad():
+                    v_loss[v_step] = -0.5*model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=ddir).mean()
         valid_loss[epoch] = v_loss.mean()
 
         torch.save(model.state_dict(), save_path / f'epoch_{epoch}_valloss_{valid_loss[epoch]:.3f}.pt')
