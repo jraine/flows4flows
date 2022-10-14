@@ -121,7 +121,7 @@ def main(cfg : DictConfig) -> None:
 
         set_trainable(base_flow,False)
 
-        plot_data(base_flow.sample(int(1e5)), outputpath / f'base_density_{label}.png')
+        plot_data(base_flow.sample(int(1e5)), outputpath / f'base_density_{label}_samples.png')
                             
 
     # Train Flow4Flow
@@ -149,8 +149,8 @@ def main(cfg : DictConfig) -> None:
                  #                           get_data(cfg.base_dist.right.data, int(1e4)))
 
     if pathlib.Path(cfg.top_transformer.load_path).is_file():
-        print(f"Loading Flow4Flow from model: {top_transformer.load_path}")
-        f4flow.load_state_dict(torch.load(top_transformer.load_path))     
+        print(f"Loading Flow4Flow from model: {cfg.top_transformer.load_path}")
+        f4flow.load_state_dict(torch.load(cfg.top_transformer.load_path))     
 
     elif((direction := cfg.top_transformer.direction.lower()) == 'iterate'):
         print("Training Flow4Flow model iteratively")
@@ -189,20 +189,20 @@ def main(cfg : DictConfig) -> None:
     left_data = test_data.left().data
     right_data = test_data.right().data
 
-    plot_data(left_data, outputpath / f'flow_for_flow_left.png')
-    plot_data(right_data, outputpath / f'flow_for_flow_right.png')
-    left_to_right, _ = flow_for_flow.transform(left_data)
-    plot_data(left_to_right, top_save / f'left_to_right.png')
-    right_to_left, _ = flow_for_flow.transform(right_data, inverse=True)
-    plot_data(right_to_left, top_save / f'right_to_left.png')
+    plot_data(left_data, outputpath / f'flow_for_flow_left_input.png')
+    plot_data(right_data, outputpath / f'flow_for_flow_right_input.png')
+    left_to_right, _ = f4flow.transform(left_data, inverse=False)
+    plot_data(left_to_right, outputpath / f'left_to_right_transform.png')
+    right_to_left, _ = f4flow.transform(right_data, inverse=True)
+    plot_data(right_to_left, outputpath / f'right_to_left_transform.png')
 
-    leftt_bd_enc = flow_for_flow.base_flow_inv.transform_to_noise(left_data)
-    right_bd_dec, _ = flow_for_flow.base_flow_fwd._transform.inverse(right_bd_enc)
+    left_bd_enc = f4flow.base_flow_fwd.transform_to_noise(left_data)
+    right_bd_dec, _ = f4flow.base_flow_inv._transform.inverse(left_bd_enc)
     plot_arrays({ 
-        'Input Data': input_data,
+        'Input Data': left_data,
         'FFF': left_to_right,
         'BdTransfer': right_bd_dec
-    }, outputpath / 'colored_lr.png')
+    }, outputpath / 'colored_left_to_right.png')
 
 if __name__ == "__main__":
     main()

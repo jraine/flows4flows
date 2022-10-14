@@ -279,5 +279,5 @@ class Anulus(ConditionalAnulus):
 class FixedWidthAnulus(ConditionalAnulus):
 
     def _create_data(self):
-        self.data = [x for x,r in self.create_circle(self.num_points, radius=self.radius, std=self.std,
-                                                     inner_radius=self.inner_radius)]
+        self.data = torch.stack([x for x,r in self.create_circle(self.num_points, radius=self.radius, std=self.std,
+                                                     inner_radius=self.inner_radius)])
