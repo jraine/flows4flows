@@ -134,8 +134,8 @@ def main(cfg : DictConfig) -> None:
                                                     num_bins=cfg.top_transformer.nbins, 
                                                     context_features=ncond_f4f
                                                    ),
-                                         base_flow_l,
-                                         base_flow_r)   
+                                         distribution_fwd=base_flow_r,
+                                         distribution_inv=base_flow_l)   
     
     train_data = UnconditionalDataToData(get_data(cfg.base_dist.left.data, int(1e4)),
                                          get_data(cfg.base_dist.right.data, int(1e4))) #\
@@ -191,10 +191,16 @@ def main(cfg : DictConfig) -> None:
 
     plot_data(left_data, outputpath / f'flow_for_flow_left_input.png')
     plot_data(right_data, outputpath / f'flow_for_flow_right_input.png')
-    left_to_right, _ = f4flow.transform(left_data, inverse=False)
+    left_to_right, _ = f4flow.transform(left_data, inverse=True)
     plot_data(left_to_right, outputpath / f'left_to_right_transform.png')
-    right_to_left, _ = f4flow.transform(right_data, inverse=True)
+    right_to_left, _ = f4flow.transform(right_data, inverse=False)
     plot_data(right_to_left, outputpath / f'right_to_left_transform.png')
+    sample_left = f4flow.base_flow_inv.sample(int(1e5))
+    plot_data(sample_left, outputpath / f'f4f_left_sample.png')
+    plot_data(f4flow.transform(sample_left,inverse=False), outputpath / f'f4f_sample_left_transform_right.png')
+    sample_right = f4flow.base_flow_fwd.sample(int(1e5))
+    plot_data(sample_right, outputpath / f'f4f_right_sample.png')
+    plot_data(f4flow.transform(sample_right,inverse=True), outputpath / f'f4f_sample_right_transform_right.png')
 
     left_bd_enc = f4flow.base_flow_fwd.transform_to_noise(left_data)
     right_bd_dec, _ = f4flow.base_flow_inv._transform.inverse(left_bd_enc)
