@@ -1,3 +1,3 @@
-[submodule "project"]
-  path = hposcripts
-  url  = ../../shared-tools/hposcripts.git
+[submodule "hposcripts"]
+	path = hposcripts
+	url = ssh://git@gitlab.cern.ch:7999/rodem/shared-tools/hposcripts.git
