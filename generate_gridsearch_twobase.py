@@ -22,12 +22,12 @@ def main():
     
     ###options to test
 
-    left_data         = ["'anulus'",
+    left_data         = ["'ring'",
                          "'concentricrings'",
                          "'fourcircles'",
                          "'checkerboard'",
                          "'spirals'"]
-    right_data        = ["'anulus'",
+    right_data        = ["'ring'",
                          "'concentricrings'",
                          "'fourcircles'",
                          "'checkerboard'",
@@ -50,7 +50,7 @@ def main():
     cmd = '\nsrun singularity exec --nv'
     if args.singularity_mounts is not None:
         cmd += f' -B {args.singularity_mounts}'
-    cmd += f' {args.singularity_instance}\\\n\tpython3 {runfile} general.save_dir={args.outputdir} general.name={args.outputname}_${{SLURM_ARRAY_TASK_ID}}\\\n\t\t'
+    cmd += f' {args.singularity_instance}\\\n\tpython3 {runfile} output.save_dir={args.outputdir} output.name={args.outputname}_${{SLURM_ARRAY_TASK_ID}}\\\n\t\t'
 
     pathlib.Path(args.work_dir).parent.mkdir(parents=True, exist_ok=True)
     pathlib.Path(args.sbatch_output).parent.mkdir(parents=True, exist_ok=True)
