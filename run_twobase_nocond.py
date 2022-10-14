@@ -121,7 +121,7 @@ def main(cfg : DictConfig) -> None:
 
         set_trainable(base_flow,False)
 
-        plot_data(base_flow.sample(int(1e5)), outputpath / f'base_density_{direction}.png')
+        plot_data(base_flow.sample(int(1e5)), outputpath / f'base_density_{label}.png')
                             
 
     # Train Flow4Flow
@@ -148,7 +148,7 @@ def main(cfg : DictConfig) -> None:
                  #else ConditionalDataToData(get_data(cfg.base_dist.left.data, int(1e4)),
                  #                           get_data(cfg.base_dist.right.data, int(1e4)))
 
-    if pathlib.Path(top_transformer.load_path).is_file():
+    if pathlib.Path(cfg.top_transformer.load_path).is_file():
         print(f"Loading Flow4Flow from model: {top_transformer.load_path}")
         f4flow.load_state_dict(torch.load(top_transformer.load_path))     
 
