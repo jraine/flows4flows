@@ -111,3 +111,7 @@ tblogger.sh
 #vscode
 settings.json
 .vscode
+
+#temp files
+*.*~
+\#*
