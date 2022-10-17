@@ -202,7 +202,7 @@ def main(cfg : DictConfig) -> None:
     sample_right = f4flow.base_flow_fwd.sample(int(1e5))
     plot_data(sample_right, outputpath / f'f4f_right_sample.png')
     sample_to_left, _ = f4flow.transform(sample_right,inverse=True)
-    plot_data(sample_to_left, outputpath / f'f4f_sample_right_transform_right.png')
+    plot_data(sample_to_left, outputpath / f'f4f_sample_right_transform_left.png')
 
     left_bd_enc = f4flow.base_flow_fwd.transform_to_noise(left_data)
     right_bd_dec, _ = f4flow.base_flow_inv._transform.inverse(left_bd_enc)
