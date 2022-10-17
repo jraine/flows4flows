@@ -144,7 +144,7 @@ class DistPenaltyFlowForFlow(FlowForFlow):
             distribution_inv: (Optional) A `Distribution` object, the base distribution for the data distribution on the inverse pass of the flow. If not specified, same as distribution_fwd
             embedding_net: A `nn.Module` which has trainable parameters to encode the
                 context (condition). It is trained jointly with the flow.
-            penalty: a function to add a penalty to the loss calculated using the inputs and outputs of the flow
+            penalty: a function to add a penalty to the loss calculated using the inputs and outputs of the flow. Default: l1 norm
         """
         super().__init__(transform, distribution_fwd, distribution_inv=None, embedding_net=None)
         self.dist_penalty = penalty
