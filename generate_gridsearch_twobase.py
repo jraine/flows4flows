@@ -27,16 +27,20 @@ def main():
                          "'fourcircles'",
                          "'checkerboard'",
                          "'spirals'"]
-    right_data        = ["'ring'",
-                         "'concentricrings'",
-                         "'fourcircles'",
+    right_data        = [
+                        # "'ring'",
+                        #  "'concentricrings'",
+                        #  "'fourcircles'",
                          "'checkerboard'",
-                         "'spirals'"]
-    f4f_dir           = ["'forward'", 
-                         "'inverse'",
-                         "'both'",
+                        #  "'spirals'"
+                         ]
+    f4f_dir           = [
                          "'alternate'",
-                         "'iterate'"]
+                         "'forward'", 
+                         "'inverse'",
+                        #  "'both'",
+                        #  "'iterate'"
+                        ]
 
     hpo.add_opt('base_dist.left.data',left_data,True)
     hpo.add_opt('base_dist.right.data',right_data,True)

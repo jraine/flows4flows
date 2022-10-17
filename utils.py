@@ -86,6 +86,8 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
     save_path = pathlib.Path(path / name)
     save_path.mkdir(parents=True,exist_ok=True)
 
+    model.to(device)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     num_steps = len(train_data) * n_epochs
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=num_steps, last_epoch=-1,
@@ -101,10 +103,10 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
 
             optimizer.zero_grad()
             if ncond is not None:
-                inputs, context_l = data
+                inputs, context_l = data[0].to(device), data[1].to(device)
                 context_r = shuffle_tensor(context_l) if rand_perm_target else None
             else:
-                inputs, context_l, context_r = data, None, None
+                inputs, context_l, context_r = data.to(device), None, None
             
             logprob = -model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=inverse).mean()
             
@@ -117,10 +119,10 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
         v_loss = torch.zeros(len(val_data))
         for v_step, data in enumerate(val_data):
             if ncond is not None:
-                inputs, context_l = data
+                inputs, context_l = data[0].to(device), data[1].to(device)
                 context_r = shuffle_tensor(context_l) if rand_perm_target else None
             else:
-                inputs, context_l, context_r = data, None, None
+                inputs, context_l, context_r = data.to(device), None, None
 
             with torch.no_grad():
                 v_loss[v_step] = -model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=inverse).mean()
@@ -150,6 +152,8 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
     save_path = pathlib.Path(path / name)
     save_path.mkdir(parents=True,exist_ok=True)
 
+    model.to(device)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     num_steps = len(train_data) * n_epochs
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=num_steps, last_epoch=-1,
@@ -163,19 +167,19 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
         for step, pairdata in enumerate(train_data):
             model.train()
             if step % 2 == 0 + 1*int(inverse):
-                data = pairdata[0]
+                data = pairdata[0].to(device)
                 inv = False
             else:
-                data = pairdata[1]
+                data = pairdata[1].to(device)
                 inv = True
 
             optimizer.zero_grad()
             if ncond is not None:
-                inputs, context_l, context_r = data[ddir]
+                inputs, context_l, context_r = data[ddir][0].to(device), data[ddir][1].to(device), data[ddir][2].to(device)
                 if rand_perm_target:
                     context_r = shuffle_tensor(context_l)
             else:
-                inputs, context_l, context_r = data, None, None
+                inputs, context_l, context_r = data.to(device), None, None
             
             logprob = -model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=inv).mean()
             
@@ -189,11 +193,11 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
         for v_step, data in enumerate(val_data):
             for ddir in [0,1]:
                 if ncond is not None:
-                    inputs, context_l, context_r = data[ddir]
+                    inputs, context_l, context_r = data[ddir][0].to(device), data[ddir][1].to(device), data[ddir][2].to(device)
                     if rand_perm_target:
                         context_r = shuffle_tensor(context_l)
                 else:
-                    inputs, context_l, context_r = data[ddir], None, None
+                    inputs, context_l, context_r = data[ddir].to(device), None, None
 
                 with torch.no_grad():
                     v_loss[v_step] = -0.5*model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=ddir).mean()
