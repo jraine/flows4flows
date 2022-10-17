@@ -163,13 +163,20 @@ class DiscreteBaseConditionFlowForFlow(FlowForFlow):
         return None
 
 class BaseFlow(flows.Flow):
+    '''
+    Wrapper class around Base Flow for a flow for flow model.
+    Harmonises function calls with FlowForFlow model.
+    Constructed and used exactly like an nflows.Flow object.
+    '''
+    def get_context(self, context, context_l):
+        return context_l if context_l is not None else context
+
     def transform(self, inputs, context=None, context_l=None, context_r=None, inverse=False):
         transform = self._transform.inverse if inverse else self._transform
-        context = context_l if context_l is not None else context
-        y, logabsdet = transform(inputs, context=context_l)
+        y, logabsdet = transform(inputs, context=self.get_context(context, context_l))
         return y, logabsdet
 
     def log_prob(self, inputs, context=None, context_l=None, context_r=None, inverse=False):
-        context = context_l if context_l is not None else context
-        _, logprob = self.transform(inputs,context_l,context_r,inverse)
-        return logprob
+        noise, logabsdet = self.transform(inputs, context_l, context_r, inverse)
+        log_prob = self._distribution.log_prob(noise, context=self.get_context(context, context_l))
+        return log_prob + logabsdet
