@@ -96,6 +96,7 @@ def main(cfg : DictConfig) -> None:
                                                     nodes=bd_conf.nnodes,
                                                     num_blocks=bd_conf.nblocks,
                                                     num_stack=bd_conf.nstack,
+                                                    tail_bound=4.0,
                                                     activation=get_activation(bd_conf.activation),
                                                     num_bins=bd_conf.nbins, 
                                                     context_features=ncond_base
@@ -130,6 +131,7 @@ def main(cfg : DictConfig) -> None:
                                                     nodes=cfg.top_transformer.nnodes,
                                                     num_blocks=cfg.top_transformer.nblocks,
                                                     num_stack=cfg.top_transformer.nstack,
+                                                    tail_bound=4.0,
                                                     activation=get_activation(cfg.top_transformer.activation),
                                                     num_bins=cfg.top_transformer.nbins, 
                                                     context_features=ncond_f4f

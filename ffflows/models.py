@@ -136,7 +136,7 @@ class FlowForFlow(abc.ABC, flows.Flow):
 
 class DistPenaltyFlowForFlow(FlowForFlow):
 
-    def __init__(self, transform, distribution_fwd, distribution_inv=None, embedding_net=None, penalty=F.l1_loss):
+    def __init__(self, transform, distribution_fwd, distribution_inv=None, embedding_net=None):
         """Constructor.
         Args:
             transform: A `Transform` object, it transforms data into noise.
@@ -144,11 +144,14 @@ class DistPenaltyFlowForFlow(FlowForFlow):
             distribution_inv: (Optional) A `Distribution` object, the base distribution for the data distribution on the inverse pass of the flow. If not specified, same as distribution_fwd
             embedding_net: A `nn.Module` which has trainable parameters to encode the
                 context (condition). It is trained jointly with the flow.
-            penalty: a function to add a penalty to the loss calculated using the inputs and outputs of the flow. Default: l1 norm
         """
         super().__init__(transform, distribution_fwd, distribution_inv=None, embedding_net=None)
         self.dist_penalty = penalty
     
+    @abc.abstractmethod
+    def distance_func(self, inputs, outputs):
+        return None
+
     def log_prob(self, inputs, context_l=None, context_r=None, inverse=False):
         '''
         log probability of transformed inputs given context, use relevant base distribution based on forward or inverse, infered from context or specified from inverse
@@ -162,7 +165,7 @@ class DistPenaltyFlowForFlow(FlowForFlow):
 
         noise, logabsdet = self.transform(inputs, context_l, context_r, inverse)
         log_prob = self.bd_log_prob(noise, context_l, context_r, inverse)
-        dist_pen = -self.penalty(noise,inputs)
+        dist_pen = -self.distance_func(noise,inputs)
         return log_prob + logabsdet + dist_pen
 
 class DeltaFlowForFlow(FlowForFlow):
