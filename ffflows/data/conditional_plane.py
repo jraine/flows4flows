@@ -22,11 +22,16 @@ class ConditionalWrapper(ConditionalPlaneDataset):
         self.base_dataset = base_dataset
         super(ConditionalWrapper, self).__init__(base_dataset.num_points)
 
-    def _get_data(self):
+    def _get_conditional(self):
         return 0, 0
 
     def _create_data(self, **kwargs):
-        data, condition = self._get_data(**kwargs)
+        data, condition = self._get_conditional(**kwargs)
+        if not isinstance(condition, np.ndarray):
+            condition = [condition]
+        cond_size = len(condition)
+        if cond_size != self.num_points:
+            condition = np.tile(condition, self.num_points).reshape(-1, cond_size)
         if not torch.is_tensor(condition):
             data, condition = [torch.Tensor(x).to(self.base_dataset.data) for x in [data, condition]]
         if isinstance(self.base_dataset,ConditionalPlaneDataset):
@@ -48,12 +53,12 @@ class RotatedData(ConditionalWrapper):
     def rotate(self, data, angle):
         if not isinstance(angle, np.ndarray):
             R = self.make_rot_matrix(angle)
-            return tensor2numpy(self.base_data.data) @ R
+            return tensor2numpy(self.base_dataset.data) @ R
         else:
             R = np.array([self.make_rot_matrix(theta) for theta in angle])
             return np.einsum('ij,ijk->ik', data, R)
 
-    def _get_data(self, angles=None):
+    def _get_conditional(self, angles=None):
         # write angle in degrees
         if angles is None:
             angles = np.random.randint(0, self.max_angle, self.num_points)
