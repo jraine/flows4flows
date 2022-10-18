@@ -29,6 +29,8 @@ class ConditionalWrapper(ConditionalPlaneDataset):
         data, condition = self._get_data(**kwargs)
         if not torch.is_tensor(condition):
             data, condition = [torch.Tensor(x).to(self.base_dataset.data) for x in [data, condition]]
+        if isinstance(self.base_dataset,ConditionalPlaneDataset):
+            condition = torch.cat([self.base_dataset.conditions,condition],axis=-1)
         self.data, self.conditions = data, condition
 
 class RotatedData(ConditionalWrapper):
