@@ -281,3 +281,33 @@ class FixedWidthAnulus(ConditionalAnulus):
     def _create_data(self):
         self.data = torch.stack([x for x,r in self.create_circle(self.num_points, radius=self.radius, std=self.std,
                                                      inner_radius=self.inner_radius)])
+
+class Star(PlaneDataset):
+    def __init__(self, num_points, num_bars=4, flip_axes=False):
+        if num_points % num_bars != 0:
+            raise ValueError('Number of data points must be a multiple of four')
+        self.num_bars = num_bars
+        super().__init__(num_points, flip_axes)
+
+    @staticmethod
+    def create_bar(num_per_bar, std=0.1):
+        u = torch.rand(num_per_bar)
+        x1 = u+0.3
+        x2 = torch.zeros_like(u)
+        data = 2 * torch.stack((x1, x2)).t()
+        data += std * torch.randn(data.shape)
+        return data
+    
+    @staticmethod
+    def rotate(x,theta):
+        rot_mat = torch.Tensor([[np.cos(theta),np.sin(theta)],
+                        [-np.sin(theta), np.cos(theta)]])
+        return torch.matmul(x,rot_mat)
+
+    def _create_data(self):
+        num_per_bar = self.num_points // self.num_bars
+        angles = np.linspace(0,1,self.num_bars+1)[:-1]*2*np.pi
+        self.data = torch.cat(
+            [self.rotate(self.create_bar(num_per_bar),theta)
+             for theta in angles]
+        )

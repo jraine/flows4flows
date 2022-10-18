@@ -4,7 +4,7 @@ import torch
 from torch.nn import functional as F
 
 from ffflows.models import DeltaFlowForFlow, ConcatFlowForFlow, DiscreteBaseFlowForFlow, DiscreteBaseConditionFlowForFlow
-from ffflows.data.plane import ConditionalAnulus, Anulus, ConcentricRings, FourCircles, CheckerboardDataset, TwoSpiralsDataset, FixedWidthAnulus
+from ffflows.data.plane import ConditionalAnulus, Anulus, ConcentricRings, FourCircles, CheckerboardDataset, TwoSpiralsDataset, FixedWidthAnulus, Star
 from ffflows.utils import shuffle_tensor
 
 from nflows import transforms
@@ -41,6 +41,7 @@ def get_data(name, num_points, *args, **kwargs):
         "fourcircles" : FourCircles,
         "checkerboard" : CheckerboardDataset,
         "spirals" : TwoSpiralsDataset,
+        "star" : Star
     }
     assert name.lower() in datadict.keys(), f"Currently {name} is not supported. Choose one of '{datadict.keys()}'"
     # batch_size = num_points if batch_size is None else batch_size
