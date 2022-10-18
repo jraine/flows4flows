@@ -4,7 +4,8 @@ import torch
 from torch.nn import functional as F
 
 from ffflows.models import DeltaFlowForFlow, ConcatFlowForFlow, DiscreteBaseFlowForFlow, DiscreteBaseConditionFlowForFlow
-from ffflows.data.plane import ConditionalAnulus, Anulus, ConcentricRings, FourCircles, CheckerboardDataset, TwoSpiralsDataset, FixedWidthAnulus, Star
+from ffflows.data.plane import ConcentricRings, FourCircles, CheckerboardDataset, TwoSpiralsDataset, Star
+from ffflows.data.conditional_plane import ConditionalAnulus
 from ffflows.utils import shuffle_tensor
 
 from nflows import transforms
@@ -35,8 +36,8 @@ def get_activation(name, *args, **kwargs):
 def get_data(name, num_points, *args, **kwargs):
     datadict = {
         "conditionalanulus" : ConditionalAnulus,
-        "anulus" : Anulus,
-        "ring": FixedWidthAnulus,
+        "anulus" : ConditionalAnulus,
+        "ring": ConditionalAnulus,
         "concentricrings" : ConcentricRings,
         "fourcircles" : FourCircles,
         "checkerboard" : CheckerboardDataset,
@@ -46,7 +47,9 @@ def get_data(name, num_points, *args, **kwargs):
     assert name.lower() in datadict.keys(), f"Currently {name} is not supported. Choose one of '{datadict.keys()}'"
     # batch_size = num_points if batch_size is None else batch_size
     if name.lower() == 'ring':
-        return datadict[name.lower()](num_points, radius=0.5)
+        return datadict[name.lower()](num_points, radius=0.5, return_cond=False)
+    elif name.lower == 'anulus':
+        return datadict[name.lower()](num_points, return_cond=False)
     else:
         return datadict[name.lower()](num_points)
     # return datadict[name.lower()](num_points)
