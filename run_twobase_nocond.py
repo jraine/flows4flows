@@ -113,7 +113,7 @@ def main(cfg : DictConfig) -> None:
 
         if pathlib.Path(bd_conf.load_path).is_file():
             print(f"Loading base_{label} from model: {bd_conf.load_path}")
-            base_flow.load_state_dict(torch.load(bd_conf.load_path))
+            base_flow.load_state_dict(torch.load(bd_conf.load_path,map_location=device))
         else:
             print(f"Training base_{label} distribution")                        
             train_base(base_flow, base_data, val_base_data,
@@ -152,7 +152,7 @@ def main(cfg : DictConfig) -> None:
 
     if pathlib.Path(cfg.top_transformer.load_path).is_file():
         print(f"Loading Flow4Flow from model: {cfg.top_transformer.load_path}")
-        f4flow.load_state_dict(torch.load(cfg.top_transformer.load_path))     
+        f4flow.load_state_dict(torch.load(cfg.top_transformer.load_path, map_location=device))     
 
     elif((direction := cfg.top_transformer.direction.lower()) == 'iterate'):
         print("Training Flow4Flow model iteratively")
@@ -184,18 +184,18 @@ def main(cfg : DictConfig) -> None:
                               cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
                               outputpath, name='f4f_inv', device=device)
 
-
+    f4flow.to(device)
     test_data = UnconditionalDataToData(get_data(cfg.base_dist.left.data, int(1e4)),
                                          get_data(cfg.base_dist.right.data, int(1e4)))
     
-    left_data = test_data.left().data
-    right_data = test_data.right().data
+    left_data = test_data.left().data.to(device)
+    right_data = test_data.right().data.to(device)
 
     plot_data(left_data, outputpath / f'flow_for_flow_left_input.png')
     plot_data(right_data, outputpath / f'flow_for_flow_right_input.png')
-    left_to_right, _ = f4flow.transform(left_data, inverse=True)
+    left_to_right, _ = f4flow.transform(left_data, inverse=False)
     plot_data(left_to_right, outputpath / f'left_to_right_transform.png')
-    right_to_left, _ = f4flow.transform(right_data, inverse=False)
+    right_to_left, _ = f4flow.transform(right_data, inverse=True)
     plot_data(right_to_left, outputpath / f'right_to_left_transform.png')
     sample_left = f4flow.base_flow_inv.sample(int(1e5))
     plot_data(sample_left, outputpath / f'f4f_left_sample.png')
@@ -206,8 +206,8 @@ def main(cfg : DictConfig) -> None:
     sample_to_left, _ = f4flow.transform(sample_right,inverse=True)
     plot_data(sample_to_left, outputpath / f'f4f_sample_right_transform_left.png')
 
-    left_bd_enc = f4flow.base_flow_fwd.transform_to_noise(left_data)
-    right_bd_dec, _ = f4flow.base_flow_inv._transform.inverse(left_bd_enc)
+    left_bd_enc = f4flow.base_flow_inv.transform_to_noise(left_data)
+    right_bd_dec, _ = f4flow.base_flow_fwd._transform.inverse(left_bd_enc)
     plot_arrays({ 
         'Input Data': left_data,
         'FFF': left_to_right,
