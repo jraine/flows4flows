@@ -13,7 +13,10 @@ from nflows.distributions import StandardNormal
 from nflows.flows import Flow
 
 from utils import get_activation, get_data, get_flow4flow, train, spline_inn
+import matplotlib.pyplot as plt
 from plot import plot_training, plot_data, plot_arrays
+
+from ffflows.data.dist_to_dist import ConditionalDataToData, ConditionalDataToTarget
 
 import numpy as np
 np.random.seed(42)
@@ -60,7 +63,7 @@ def main(cfg : DictConfig) -> None:
                     )
     if pathlib.Path(cfg.base_dist.load_path).is_file():
         print(f"Loading base from model: {cfg.base_dist.load_path}")
-        base_flow.load_state_dict(torch.load(cfg.base_dist.load_path))
+        base_flow.load_state_dict(torch.load(cfg.base_dist.load_path, map_location=device))
     else:
         print("Training base distribution")                        
         train_base(base_flow, base_data, val_base_data,
@@ -84,13 +87,14 @@ def main(cfg : DictConfig) -> None:
                                          base_flow)
     if pathlib.Path(cfg.top_transformer.load_path).is_file():
         print(f"Loading Flow4Flow from model: {cfg.top_transformer.load_path}")
-        f4flow.load_state_dict(torch.load(cfg.top_transformer.load_path))
+        f4flow.load_state_dict(torch.load(cfg.top_transformer.load_path, map_location=device))
     else:
         print("Training Flow4Flow model")
         train_f4f(f4flow, base_data, val_base_data,
                 cfg.base_dist.nepochs, cfg.base_dist.lr, cfg.general.ncond,
                 outputpath, name='f4f', device=device)
 
+    f4flow.to(device)
     test_data = DataLoader(get_data(cfg.base_dist.data, int(1e5)), batch_size=1000)
     # f4flow.transform(test_data)
 

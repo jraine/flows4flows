@@ -29,7 +29,7 @@ def main():
                          "'spirals'"]
     right_data        = [
                         # "'ring'",
-                        #  "'concentricrings'",
+                         "'concentricrings'",
                         #  "'fourcircles'",
                          "'checkerboard'",
                         #  "'spirals'"
