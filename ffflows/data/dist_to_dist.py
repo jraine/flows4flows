@@ -36,7 +36,6 @@ class UnconditionalDataToData(object):
     def paired(self):
         return PairedData(*[shuffle_tensor(data) for data in (self.data1, self.data2)])
 
-
 class ConditionalDataToData(UnconditionalDataToData):
 
     def __init__(self, data1, data2):
@@ -50,12 +49,11 @@ class ConditionalDataToData(UnconditionalDataToData):
         return self.data2
 
     def paired(self):
-        # assuming data is of form (data,condition)
+        #assuming data is of form (data,condition)
         data1, data2 = [shuffle_tensor(data) for data in (self.data1, self.data2)]
-        data1_cond_target = (*data1, data2[0])
-        data2_cond_target = (*data2, data1[0])
-        return PairedData(data1_cond_target, data2_cond_target)
-
+        data1_cond_target = (*data1,data2[0])
+        data2_cond_target = (*data2,data1[0])
+        return PairedData(data1_cond_target,data2_cond_target)
 
 class ConditionalDataToTarget(UnconditionalDataToData):
 
@@ -70,10 +68,10 @@ class ConditionalDataToTarget(UnconditionalDataToData):
         return self.data2
 
     def paired(self):
-        # assuming data is of form (data,condition)
+        #assuming data is of form (data,condition)
         data2 = torch.Tensor(self.data2)
         if data2.shape == self.data1[1].shape:
-            return (*self.data1, self.data2)
+            return (*self.data1,self.data2)
         else:
-            data2 = torch.broadcast_to(self.data2, self.data1.shape)
-            return (*self.data1, data2)
+            data2 = torch.broadcast_to(self.data2,self.data1.shape)
+            return (*self.data1,data2)

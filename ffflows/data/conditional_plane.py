@@ -11,11 +11,16 @@ class ConditionalWrapper(PlaneDataset):
         self.base_dataset = base_dataset
         super(ConditionalWrapper, self).__init__(base_dataset.num_points)
 
-    def _get_data(self):
+    def _get_conditional(self):
         return 0, 0
 
     def _create_data(self, **kwargs):
-        data, condition = self._get_data(**kwargs)
+        data, condition = self._get_conditional(**kwargs)
+        if not isinstance(condition, np.ndarray):
+            condition = [condition]
+        cond_size = len(condition)
+        if cond_size != self.num_points:
+            condition = np.tile(condition, self.num_points).reshape(-1, cond_size)
         if not torch.is_tensor(condition):
             data, condition = [torch.Tensor(x).to(self.base_dataset.data) for x in [data, condition]]
         self.data = [[d, r] for d, r in zip(data, condition.view(-1, 1))]
@@ -36,12 +41,12 @@ class RotatedData(ConditionalWrapper):
     def rotate(self, data, angle):
         if not isinstance(angle, np.ndarray):
             R = self.make_rot_matrix(angle)
-            return tensor2numpy(self.base_data.data) @ R
+            return tensor2numpy(self.base_dataset.data) @ R
         else:
             R = np.array([self.make_rot_matrix(theta) for theta in angle])
             return np.einsum('ij,ijk->ik', data, R)
 
-    def _get_data(self, angles=None):
+    def _get_conditional(self, angles=None):
         # write angle in degrees
         if angles is None:
             angles = np.random.randint(0, self.max_angle, self.num_points)
@@ -50,3 +55,42 @@ class RotatedData(ConditionalWrapper):
         scale = np.sqrt(2 * 4 ** 2)
         data = cond_data / scale * 4
         return data, angles / self.max_angle
+
+
+class RadialShift(ConditionalWrapper):
+
+    def __init__(self, base_dataset, max_shift=1):
+        self.max_shift = max_shift
+        super(RadialShift, self).__init__(base_dataset)
+
+    def _get_conditional(self, shift=None):
+        # write angle in degrees
+        if shift is None:
+            # When sampling in 2D there is a volume correction for the radius which is accounted for with the square
+            # root
+            shift = np.random.rand(self.num_points).reshape(-1, 1) ** 0.5 * self.max_shift
+        cond_data = self.base_dataset.data * shift
+        return cond_data, shift
+
+
+class ElipseShift(ConditionalWrapper):
+
+    def __init__(self, base_dataset, max_shift_x=1, max_shift_y=1):
+        self.max_shift_x = max_shift_x 
+        self.max_shift_y = max_shift_y
+        super(ElipseShift, self).__init__(base_dataset)
+
+    def get_shift(self, shift, max):
+        if shift is None:
+            shift = np.random.rand(self.num_points).reshape(-1, 1) ** 0.5 * max
+        elif not isinstance(shift, np.ndarray):
+            shift = shift * np.ones((self.num_points, 1))
+        return shift
+
+    def _get_conditional(self, shift_x=None, shift_y=None):
+        # write angle in degrees
+        shift_x = self.get_shift(shift_x, self.max_shift_x)
+        shift_y = self.get_shift(shift_y, self.max_shift_y)
+        shift = np.concatenate((shift_x, shift_y), 1)
+        cond_data = self.base_dataset.data * shift
+        return cond_data, shift
