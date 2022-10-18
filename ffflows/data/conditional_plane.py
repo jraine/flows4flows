@@ -4,8 +4,15 @@ from nflows.utils import tensor2numpy
 from ffflows.data.plane import PlaneDataset
 import numpy as np
 
+class ConditionalPlaneDataset(PlaneDataset):
+    def __init__(self, num_points, flip_axes=False):
+        self.conditions = None
+        super(ConditionalPlaneDataset, self).__init__(num_points, flip_axes)
 
-class ConditionalWrapper(PlaneDataset):
+    def __getitem__(self, item):
+        return self.data[item], self.conditions[item]
+
+class ConditionalWrapper(ConditionalPlaneDataset):
 
     def __init__(self, base_dataset):
         self.base_dataset = base_dataset
@@ -18,7 +25,7 @@ class ConditionalWrapper(PlaneDataset):
         data, condition = self._get_data(**kwargs)
         if not torch.is_tensor(condition):
             data, condition = [torch.Tensor(x).to(self.base_dataset.data) for x in [data, condition]]
-        self.data = [[d, r] for d, r in zip(data, condition.view(-1, 1))]
+        self.data, self.conditions = data, condition
 
 
 class RotatedData(ConditionalWrapper):
@@ -50,3 +57,33 @@ class RotatedData(ConditionalWrapper):
         scale = np.sqrt(2 * 4 ** 2)
         data = cond_data / scale * 4
         return data, angles / self.max_angle
+
+class ConditionalAnulus(ConditionalPlaneDataset):
+    def __init__(self, num_points, radius=None, std=0.3, flip_axes=False):
+        """
+        An Anulus dataset with
+        :param num_points:
+        :param radius: Radius of the anulus, if None many anuli with random radii
+        :param std: Width of the anulus
+        :param flip_axes:
+        """
+        self.inner_radius = 1.0
+        self.radius = radius
+        self.std = std
+        super().__init__(num_points, flip_axes)
+
+    @staticmethod
+    def create_circle(num_per_circle, radius=None, std=0.1, inner_radius=0.5):
+        u = torch.rand(num_per_circle)
+        r = torch.rand(num_per_circle) if radius is None else radius * torch.ones(num_per_circle)
+        r += inner_radius
+        x1 = torch.cos(2 * np.pi * u)
+        x2 = torch.sin(2 * np.pi * u)
+        data = 2 * torch.stack((x1, x2)).t()
+        data += std * torch.randn(data.shape)
+        data = 0.5 * (r.view(-1, 1)) * data
+        return data, r.view(-1,1)
+
+    def _create_data(self):
+        self.data, self.conditions = self.create_circle(self.num_points, radius=self.radius, std=self.std,
+                                                        inner_radius=self.inner_radius)
