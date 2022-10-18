@@ -23,7 +23,8 @@ class ConditionalWrapper(PlaneDataset):
             condition = np.tile(condition, self.num_points).reshape(-1, cond_size)
         if not torch.is_tensor(condition):
             data, condition = [torch.Tensor(x).to(self.base_dataset.data) for x in [data, condition]]
-        self.data = [[d, r] for d, r in zip(data, condition.view(-1, 1))]
+        self.data = data
+        self.condition = condition
 
 
 class RotatedData(ConditionalWrapper):
@@ -76,7 +77,7 @@ class RadialShift(ConditionalWrapper):
 class ElipseShift(ConditionalWrapper):
 
     def __init__(self, base_dataset, max_shift_x=1, max_shift_y=1):
-        self.max_shift_x = max_shift_x 
+        self.max_shift_x = max_shift_x
         self.max_shift_y = max_shift_y
         super(ElipseShift, self).__init__(base_dataset)
 
