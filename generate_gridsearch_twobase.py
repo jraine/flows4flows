@@ -25,24 +25,26 @@ def main():
     }
 
     hpo.set_sbatch_opts(sbatch_opts)
-    
+
     ###options to test
 
-    left_data         = ["'ring'",
-                         "'concentricrings'",
-                         "'fourcircles'",
+    left_data         = [
+                        # "'ring'",
+                        #  "'concentricrings'",
+                        #  "'fourcircles'",
                          "'checkerboard'",
-                         "'spirals'"]
+                         # "'spirals'"
+                         ]
     right_data        = [
                         # "'ring'",
-                         "'concentricrings'",
+                        #  "'concentricrings'",
                         #  "'fourcircles'",
                          "'checkerboard'",
                         #  "'spirals'"
                          ]
     f4f_dir           = [
                          "'alternate'",
-                         "'forward'", 
+                         "'forward'",
                          "'inverse'",
                         #  "'both'",
                         #  "'iterate'"
@@ -62,7 +64,7 @@ def main():
 
     pathlib.Path(logdir).mkdir(parents=True, exist_ok=True)
     pathlib.Path(args.sbatch_output).parent.mkdir(parents=True, exist_ok=True)
-    
+
     hpo.set_command(cmd)
     hpo.launch(outputfile=args.sbatch_output,submit=args.submit,nrandom=args.nrandom)
 
@@ -79,7 +81,7 @@ def _get_args():
     parser.add_argument('-n', '--outputname', type=str,
                         help='Set the output name directory',
                         required=True)
-    
+
     parser.add_argument('--squeue',type=str,default='private-dpnc-gpu,shared-gpu')
     parser.add_argument('--stime',type=str,default='00-12:00:00')
     parser.add_argument('--smem',type=str,default='25GB')

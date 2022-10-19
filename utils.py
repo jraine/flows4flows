@@ -7,17 +7,14 @@ from ffflows.models import DeltaFlowForFlow, ConcatFlowForFlow, DiscreteBaseFlow
     DiscreteBaseConditionFlowForFlow
 from ffflows.data.plane import ConcentricRings, FourCircles, CheckerboardDataset, TwoSpiralsDataset, Star, \
     Anulus
-from ffflows.data.conditional_plane import RotatedData, RadialShift, ElipseShift
+from ffflows.data.conditional_plane import RotatedData, RadialScale, ElipseShift
 from ffflows.utils import shuffle_tensor
 
 from nflows import transforms
-from nflows.distributions import StandardNormal
-from nflows.flows import Flow
 
 from plot import plot_training
 import matplotlib.pyplot as plt
 
-from torch.utils.data import DataLoader
 
 
 def get_activation(name, *args, **kwargs):
@@ -63,7 +60,7 @@ def get_conditional_data(conditional_type, base_name, num_points, *args, **kwarg
 
     data_wrapper = {
         "rotation": RotatedData,
-        "radial": RadialShift,
+        "radial": RadialScale,
         "ellipse": ElipseShift
     }[conditional_type.lower()]
     return data_wrapper(base_data)
