@@ -4,19 +4,8 @@ from nflows.utils import tensor2numpy
 from ffflows.data.plane import PlaneDataset
 import numpy as np
 
-class ConditionalPlaneDataset(PlaneDataset):
-    def __init__(self, num_points, flip_axes=False, return_cond=True):
-        self.conditions = None
-        self.return_cond = return_cond
-        super(ConditionalPlaneDataset, self).__init__(num_points, flip_axes)
 
-    def __getitem__(self, item):
-        if self.return_cond:
-            return self.data[item], self.conditions[item]
-        else:
-            return self.data[item]
-
-class ConditionalWrapper(ConditionalPlaneDataset):
+class ConditionalWrapper(PlaneDataset):
 
     def __init__(self, base_dataset):
         self.base_dataset = base_dataset
@@ -34,9 +23,9 @@ class ConditionalWrapper(ConditionalPlaneDataset):
             condition = np.tile(condition, self.num_points).reshape(-1, cond_size)
         if not torch.is_tensor(condition):
             data, condition = [torch.Tensor(x).to(self.base_dataset.data) for x in [data, condition]]
-        if isinstance(self.base_dataset,ConditionalPlaneDataset):
-            condition = torch.cat([self.base_dataset.conditions,condition],axis=-1)
-        self.data, self.conditions = data, condition
+        self.data = data
+        self.condition = condition
+
 
 class RotatedData(ConditionalWrapper):
 
@@ -68,32 +57,41 @@ class RotatedData(ConditionalWrapper):
         data = cond_data / scale * 4
         return data, angles / self.max_angle
 
-class ConditionalAnulus(ConditionalPlaneDataset):
-    def __init__(self, num_points, radius=None, std=0.3, flip_axes=False):
-        """
-        An Anulus dataset with
-        :param num_points:
-        :param radius: Radius of the anulus, if None many anuli with random radii
-        :param std: Width of the anulus
-        :param flip_axes:
-        """
-        self.inner_radius = 1.0
-        self.radius = radius
-        self.std = std
-        super().__init__(num_points, flip_axes)
 
-    @staticmethod
-    def create_circle(num_per_circle, radius=None, std=0.1, inner_radius=0.5):
-        u = torch.rand(num_per_circle)
-        r = torch.rand(num_per_circle) if radius is None else radius * torch.ones(num_per_circle)
-        r += inner_radius
-        x1 = torch.cos(2 * np.pi * u)
-        x2 = torch.sin(2 * np.pi * u)
-        data = 2 * torch.stack((x1, x2)).t()
-        data += std * torch.randn(data.shape)
-        data = 0.5 * (r.view(-1, 1)) * data
-        return data, r.view(-1,1)
+class RadialShift(ConditionalWrapper):
 
-    def _create_data(self):
-        self.data, self.conditions = self.create_circle(self.num_points, radius=self.radius, std=self.std,
-                                                        inner_radius=self.inner_radius)
+    def __init__(self, base_dataset, max_shift=1):
+        self.max_shift = max_shift
+        super(RadialShift, self).__init__(base_dataset)
+
+    def _get_conditional(self, shift=None):
+        # write angle in degrees
+        if shift is None:
+            # When sampling in 2D there is a volume correction for the radius which is accounted for with the square
+            # root
+            shift = np.random.rand(self.num_points).reshape(-1, 1) ** 0.5 * self.max_shift
+        cond_data = self.base_dataset.data * shift
+        return cond_data, shift
+
+
+class ElipseShift(ConditionalWrapper):
+
+    def __init__(self, base_dataset, max_shift_x=1, max_shift_y=1):
+        self.max_shift_x = max_shift_x
+        self.max_shift_y = max_shift_y
+        super(ElipseShift, self).__init__(base_dataset)
+
+    def get_shift(self, shift, max):
+        if shift is None:
+            shift = np.random.rand(self.num_points).reshape(-1, 1) ** 0.5 * max
+        elif not isinstance(shift, np.ndarray):
+            shift = shift * np.ones((self.num_points, 1))
+        return shift
+
+    def _get_conditional(self, shift_x=None, shift_y=None):
+        # write angle in degrees
+        shift_x = self.get_shift(shift_x, self.max_shift_x)
+        shift_y = self.get_shift(shift_y, self.max_shift_y)
+        shift = np.concatenate((shift_x, shift_y), 1)
+        cond_data = self.base_dataset.data * shift
+        return cond_data, shift
