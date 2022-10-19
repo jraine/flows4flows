@@ -5,12 +5,13 @@ from torch.nn import functional as F
 import torch.nn as nn
 import torch
 
+
 class FlowForFlow(abc.ABC, flows.Flow):
     '''
     Driving class for a flow for flow model.
     Holds the top flow as well as base distributions, and handles training steps for forward and backward.
     '''
-    
+
     def __init__(self, transform, distribution_fwd, distribution_inv=None, embedding_net=None):
         """Constructor.
         Args:
@@ -60,7 +61,9 @@ class FlowForFlow(abc.ABC, flows.Flow):
             context = None
         else:
             if context_r is not None:
-                context_r = torch.tile(context_r.view(-1,*context_l.view(context_l.shape[0],-1).shape[1:]),(context_l.shape[0],)).view(context_l.shape) if context_r.view(-1,*context_l.view(context_l.shape[0],-1).shape[1:]).shape[0] == 1 else context_r
+                context_r = torch.tile(context_r.view(-1, *context_l.view(context_l.shape[0], -1).shape[1:]),
+                                       (context_l.shape[0],)).view(context_l.shape) if \
+                context_r.view(-1, *context_l.view(context_l.shape[0], -1).shape[1:]).shape[0] == 1 else context_r
             context = self._embedding_net(self.context_func(context_r, context_l))
 
         transform = self._transform.inverse if inverse else self._transform
@@ -86,7 +89,7 @@ class FlowForFlow(abc.ABC, flows.Flow):
             for direction, mx in zip([True, False], [order, ~order]):
                 if torch.any(mx):
                     outputs[mx], logabsdet[mx] = self.__transform(inputs[mx], context_l[mx], context_r[mx],
-                                                                inverse=direction)
+                                                                  inverse=direction)
         return outputs, logabsdet
 
     def bd_log_prob(self, noise, context_l=None, context_r=None, inverse=False):
@@ -105,7 +108,7 @@ class FlowForFlow(abc.ABC, flows.Flow):
             log_prob = base_flow.log_prob(noise)
         else:
             log_prob = torch.zeros(len(noise)).to(noise)
-            for base_flow, mx in zip([self.base_flow_fwd,self.base_flow_fwd],[order, ~order]):
+            for base_flow, mx in zip([self.base_flow_fwd, self.base_flow_fwd], [order, ~order]):
                 if torch.any(mx):
                     log_prob[mx] = base_flow.log_prob(noise[mx], context=context_r[mx])
         return log_prob
@@ -134,9 +137,10 @@ class FlowForFlow(abc.ABC, flows.Flow):
     def sample_and_log_prob(self, num_samples, context=None):
         raise NotImplementedError()
 
+
 class DistPenaltyFlowForFlow(FlowForFlow):
 
-    def __init__(self, transform, distribution_fwd, distribution_inv=None, embedding_net=None):
+    def __init__(self, transform, distribution_fwd, penalty, distribution_inv=None, embedding_net=None):
         """Constructor.
         Args:
             transform: A `Transform` object, it transforms data into noise.
@@ -147,7 +151,7 @@ class DistPenaltyFlowForFlow(FlowForFlow):
         """
         super().__init__(transform, distribution_fwd, distribution_inv=None, embedding_net=None)
         self.dist_penalty = penalty
-    
+
     @abc.abstractmethod
     def distance_func(self, inputs, outputs):
         return None
@@ -165,8 +169,9 @@ class DistPenaltyFlowForFlow(FlowForFlow):
 
         noise, logabsdet = self.transform(inputs, context_l, context_r, inverse)
         log_prob = self.bd_log_prob(noise, context_l, context_r, inverse)
-        dist_pen = -self.distance_func(noise,inputs)
+        dist_pen = -self.distance_func(noise, inputs)
         return log_prob + logabsdet + dist_pen
+
 
 class DeltaFlowForFlow(FlowForFlow):
 
@@ -203,12 +208,14 @@ class DiscreteBaseConditionFlowForFlow(FlowForFlow):
     def _direction_func(self, x, y):
         return None
 
+
 class BaseFlow(flows.Flow):
     '''
     Wrapper class around Base Flow for a flow for flow model.
     Harmonises function calls with FlowForFlow model.
     Constructed and used exactly like an nflows.Flow object.
     '''
+
     def get_context(self, context, context_l):
         return context_l if context_l is not None else context
 
