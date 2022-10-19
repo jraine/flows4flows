@@ -1,0 +1,117 @@
+# Object file
+*.o
+
+# Data files
+/images
+/results
+/container
+/logs
+/jobs
+/experiments/data
+/experiments/logs
+/ffflows/data/downloads
+/ffflows/data/saved_models
+/ffflows/data/slims
+tbslurm/
+pplot/
+submit.txt
+settings.txt
+cpu_grid.py
+*.hdf5
+*.h5
+slurmscripts/
+notebook/
+*.egg-info/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+*.npz
+
+# Mac
+.DS_Store
+
+# PyCharm
+/inspectionProfiles
+/.idea
+*.xml
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+*.eggs
+curtains.egg-info/
+python_install/
+
+# Django stuff:
+local_settings.py
+db.sqlite3
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Singularity image
+*.sif
+
+# latex files
+*.pdf
+*.dvi
+*.toc
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.bak
+*.idx
+*.ilg
+*.ind
+*.nav
+*.snm
+*.synctex.gz
+
+# images
+*.png
+
+#things that shouldn't be VCd
+grid.py
+*.txt
+submit.sh
+repeat.txt
+notebook.sh
+tblogger.sh
+*.csv
+*.sh
+*workspace
+*ipynb
+
+#vscode
+settings.json
+.vscode
+
+#temp files
+*.*~
+\#*
