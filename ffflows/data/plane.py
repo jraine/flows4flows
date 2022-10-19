@@ -240,7 +240,7 @@ class ConcentricRings(PlaneDataset):
         )
 
 
-class ConditionalAnulus(PlaneDataset):
+class Anulus(PlaneDataset):
     def __init__(self, num_points, radius=None, std=0.3, flip_axes=False):
         """
         An Anulus dataset with
@@ -264,23 +264,12 @@ class ConditionalAnulus(PlaneDataset):
         data = 2 * torch.stack((x1, x2)).t()
         data += std * torch.randn(data.shape)
         data = 0.5 * (r.view(-1, 1)) * data
-        return [[d,r] for d,r in zip(data, r.view(-1, 1))]
+        return data
 
     def _create_data(self):
         self.data = self.create_circle(self.num_points, radius=self.radius, std=self.std,
                                        inner_radius=self.inner_radius)
 
-class Anulus(ConditionalAnulus):
-
-    def _create_data(self):
-        self.data = self.create_circle(self.num_points, radius=self.radius, std=self.std,
-                                       inner_radius=self.inner_radius)[:, :2]
-
-class FixedWidthAnulus(ConditionalAnulus):
-
-    def _create_data(self):
-        self.data = torch.stack([x for x,r in self.create_circle(self.num_points, radius=self.radius, std=self.std,
-                                                     inner_radius=self.inner_radius)])
 
 class Star(PlaneDataset):
     def __init__(self, num_points, num_bars=4, flip_axes=False):

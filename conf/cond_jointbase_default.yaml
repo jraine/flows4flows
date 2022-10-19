@@ -7,7 +7,8 @@ general:
   ncond: 1
 
 base_dist:
-  data: ConditionalAnulus
+  condition: radial
+  base_data: ring
   ncond: 1
   load_path: None
   batch_size: 128
