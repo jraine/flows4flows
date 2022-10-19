@@ -75,7 +75,7 @@ def main(cfg: DictConfig) -> None:
     for con in [0.25, 0.5, 0.75]:
         con = torch.Tensor([con]).view(-1, 1)
         plot_data(base_flow.sample(int(1e5), context=con).squeeze(),
-                  outputpath / f'base_density_{con}.png')
+                  outputpath / f'base_density_{con.item()}.png')
 
     # Train Flow4Flow
     f4flow = get_flow4flow(cfg.top_transformer.flow4flow,
@@ -99,8 +99,14 @@ def main(cfg: DictConfig) -> None:
                   outputpath, name='f4f', device=device)
 
     f4flow.to(device)
-    test_data = DataLoader(get_data(cfg.base_dist.data, int(1e5)), batch_size=1000)
-    # f4flow.transform(test_data)
+    test_data = get_data(int(1e4))
+    test_points = test_data.get_default_eval(4)
+    input_data, input_conditions = test_data.data, test_data.conditions
+    for con in test_points: 
+        # TODO should probably handle this kind of broadcasting by default?
+        con = con * torch.ones_like(input_conditions)
+        transformed, _ = f4flow.transform(input_data, context_l=input_conditions, context_r=con)
+        plot_data(transformed, outputpath / f'flow_for_flow_{con[0].item():.2f}.png')
 
 
 if __name__ == "__main__":
