@@ -64,7 +64,7 @@ def main():
     pathlib.Path(args.sbatch_output).parent.mkdir(parents=True, exist_ok=True)
     
     hpo.set_command(cmd)
-    hpo.launch(outputfile=args.sbatch_output,submit=args.submit)
+    hpo.launch(outputfile=args.sbatch_output,submit=args.submit,nrandom=args.nrandom)
 
     return
 
@@ -86,6 +86,8 @@ def _get_args():
 
     parser.add_argument('--submit',action='store_true',
                         dest='submit')
+    parser.add_argument('--nrandom',type=int,default=-1,
+                        help='Run a random grid search with N jobs')
 
     parser.add_argument('--sbatch-output',type=str,default='gridsearch_submit.txt')
 
