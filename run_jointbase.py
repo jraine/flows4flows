@@ -1,20 +1,16 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import pathlib
-import ffflows
 from ffflows.models import BaseFlow
 from ffflows.utils import set_trainable
 
 import torch
 from torch.utils.data import DataLoader
 
-from nflows import transforms
 from nflows.distributions import StandardNormal
-from nflows.flows import Flow
 
 from utils import get_activation, get_data, get_flow4flow, train, spline_inn
-import matplotlib.pyplot as plt
-from plot import plot_training, plot_data, plot_arrays
+from plot import plot_data
 
 from ffflows.data.dist_to_dist import ConditionalDataToData, ConditionalDataToTarget
 
@@ -82,7 +78,8 @@ def main(cfg : DictConfig) -> None:
                                                     num_stack=cfg.top_transformer.nstack,
                                                     activation=get_activation(cfg.top_transformer.activation),
                                                     num_bins=cfg.top_transformer.nbins, 
-                                                    context_features=cfg.general.ncond
+                                                    context_features=cfg.general.ncond,
+                                                    flow_for_flow=True
                                                    ),
                                          base_flow)
     if pathlib.Path(cfg.top_transformer.load_path).is_file():

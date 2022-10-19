@@ -134,7 +134,8 @@ def main(cfg : DictConfig) -> None:
                                                     tail_bound=4.0,
                                                     activation=get_activation(cfg.top_transformer.activation),
                                                     num_bins=cfg.top_transformer.nbins, 
-                                                    context_features=ncond_f4f
+                                                    context_features=ncond_f4f,
+                                                    flow_for_flow=True
                                                    ),
                                          distribution_fwd=base_flow_r,
                                          distribution_inv=base_flow_l)   

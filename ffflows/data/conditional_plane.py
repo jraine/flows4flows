@@ -36,8 +36,14 @@ class ConditionalWrapper(ConditionalPlaneDataset):
             condition = np.tile(condition, self.num_points).reshape(-1, cond_size)
         if not torch.is_tensor(condition):
             data, condition = [torch.Tensor(x).to(self.base_dataset.data) for x in [data, condition]]
+
+        # TODO write a subclass with this default given subclassing
+        # if isinstance(self.base_dataset, ConditionalPlaneDataset):
+        #     condition = torch.cat([self.base_dataset.conditions, condition], axis=-1)
+
         self.data = data
         self.conditions = condition
+
 
 
 class RotatedData(ConditionalWrapper):

@@ -5,7 +5,7 @@ from torch.nn import functional as F
 
 from ffflows.models import DeltaFlowForFlow, ConcatFlowForFlow, DiscreteBaseFlowForFlow, DiscreteBaseConditionFlowForFlow
 from ffflows.data.plane import ConcentricRings, FourCircles, CheckerboardDataset, TwoSpiralsDataset, Star
-from ffflows.data.conditional_plane import ConditionalAnulus
+from ffflows.data.conditional_plane import RotatedData, RadialShift, ElipseShift
 from ffflows.utils import shuffle_tensor
 
 from nflows import transforms
@@ -35,7 +35,6 @@ def get_activation(name, *args, **kwargs):
 
 def get_data(name, num_points, *args, **kwargs):
     datadict = {
-        "conditionalanulus" : ConditionalAnulus,
         "anulus" : ConditionalAnulus,
         "ring": ConditionalAnulus,
         "concentricrings" : ConcentricRings,
@@ -54,6 +53,16 @@ def get_data(name, num_points, *args, **kwargs):
         return datadict[name.lower()](num_points)
     # return datadict[name.lower()](num_points)
 
+def get_conditional_data(conditional_type, base_name, num_points, *args, **kwargs):
+    base_data = get_data(base_name, num_points, *args, **kwargs)
+
+    data_wrapper = {
+        "rotation": RotatedData,
+        "radial": RadialShift,
+        "ellipse": ElipseShift
+    }[conditional_type.lower()]
+    return data_wrapper(base_data)
+
 def get_flow4flow(name, *args, **kwargs):
     f4fdict = {
         "delta" : DeltaFlowForFlow,
@@ -67,7 +76,7 @@ def get_flow4flow(name, *args, **kwargs):
 
 
 def spline_inn(inp_dim, nodes=128, num_blocks=2, num_stack=3, tail_bound=3.5, tails='linear', activation=F.relu, lu=0,
-               num_bins=10, context_features=None):
+               num_bins=10, context_features=None, flow_for_flow=False):
     transform_list = []
     for i in range(num_stack):
         transform_list += [
@@ -82,7 +91,12 @@ def spline_inn(inp_dim, nodes=128, num_blocks=2, num_stack=3, tail_bound=3.5, ta
         else:
             transform_list += [transforms.ReversePermutation(inp_dim)]
 
-    return transforms.CompositeTransform(transform_list[:-1])
+    if not (flow_for_flow and (num_stack % 2 == 0)):
+        # If the above conditions are satisfied then you want to permute back to the original ordering such that the
+        # output features line up with their original ordering.
+        transform_list = transform_list[:-1]
+
+    return transforms.CompositeTransform(transform_list)
 
 
 def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, name, rand_perm_target=False, inverse=False, loss_fig=True, device='cpu'):
