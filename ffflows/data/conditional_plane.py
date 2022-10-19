@@ -17,6 +17,8 @@ class ConditionalPlaneDataset(PlaneDataset):
         else:
             return self.data[item]
 
+    def get_tuple(self):
+        return self.data, self.conditions
 
 class ConditionalWrapper(ConditionalPlaneDataset):
 

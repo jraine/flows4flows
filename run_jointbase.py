@@ -100,13 +100,12 @@ def main(cfg: DictConfig) -> None:
 
     f4flow.to(device)
     test_data = get_data(int(1e4))
+
     test_points = test_data.get_default_eval(4)
-    input_data, input_conditions = test_data.data, test_data.conditions
     for con in test_points: 
-        # TODO should probably handle this kind of broadcasting by default?
-        con = con * torch.ones_like(input_conditions)
-        transformed, _ = f4flow.transform(input_data, context_l=input_conditions, context_r=con)
-        plot_data(transformed, outputpath / f'flow_for_flow_{con[0].item():.2f}.png')
+        data = ConditionalDataToTarget(test_data.get_tuple(),con)
+        transformed, _ = f4flow.transform(*data.paired())
+        plot_data(transformed, outputpath / f'flow_for_flow_{con.item():.2f}.png')
 
 
 if __name__ == "__main__":

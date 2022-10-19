@@ -69,9 +69,9 @@ class ConditionalDataToTarget(UnconditionalDataToData):
 
     def paired(self):
         #assuming data is of form (data,condition)
-        data2 = torch.Tensor(self.data2)
+        data2 = torch.as_tensor(self.data2)
         if data2.shape == self.data1[1].shape:
             return (*self.data1,self.data2)
         else:
-            data2 = torch.broadcast_to(self.data2,self.data1.shape)
+            data2 = torch.broadcast_to(self.data2,self.data1[1].shape)
             return (*self.data1,data2)
