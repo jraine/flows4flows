@@ -5,7 +5,20 @@ from ffflows.data.plane import PlaneDataset
 import numpy as np
 
 
-class ConditionalWrapper(PlaneDataset):
+class ConditionalPlaneDataset(PlaneDataset):
+    def __init__(self, num_points, flip_axes=False, return_cond=True):
+        self.conditions = None
+        self.return_cond = return_cond
+        super(ConditionalPlaneDataset, self).__init__(num_points, flip_axes)
+
+    def __getitem__(self, item):
+        if self.return_cond:
+            return self.data[item], self.conditions[item]
+        else:
+            return self.data[item]
+
+
+class ConditionalWrapper(ConditionalPlaneDataset):
 
     def __init__(self, base_dataset):
         self.base_dataset = base_dataset
@@ -24,7 +37,7 @@ class ConditionalWrapper(PlaneDataset):
         if not torch.is_tensor(condition):
             data, condition = [torch.Tensor(x).to(self.base_dataset.data) for x in [data, condition]]
         self.data = data
-        self.condition = condition
+        self.conditions = condition
 
 
 class RotatedData(ConditionalWrapper):
