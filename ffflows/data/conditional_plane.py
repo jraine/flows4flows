@@ -90,7 +90,7 @@ class RadialScale(ConditionalWrapper):
         if scale is None:
             # When sampling in 2D there is a volume correction for the radius which is accounted for with the square
             # root
-            shift = np.random.rand(self.num_points).reshape(-1, 1) ** 0.5 * self.max_scale
+            scale = np.random.rand(self.num_points).reshape(-1, 1) ** 0.5 * self.max_scale
         cond_data = self.base_dataset.data * scale
         return cond_data, scale
 
