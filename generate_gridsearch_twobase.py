@@ -60,7 +60,7 @@ def main():
         cmd += f' -B {args.singularity_mounts}'
     cmd += f' {args.singularity_instance}\\\n\tpython3 {runfile}\\\n\t\toutput.save_dir={args.outputdir}\\\n\t\toutput.name={args.outputname}_${{SLURM_ARRAY_TASK_ID}}\\\n\t\t'
 
-    pathlib.Path(logdir).parent.mkdir(parents=True, exist_ok=True)
+    pathlib.Path(logdir).mkdir(parents=True, exist_ok=True)
     pathlib.Path(args.sbatch_output).parent.mkdir(parents=True, exist_ok=True)
     
     hpo.set_command(cmd)
