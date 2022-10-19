@@ -95,7 +95,7 @@ def main(cfg: DictConfig) -> None:
     else:
         print("Training Flow4Flow model")
         train_f4f(f4flow, base_data, val_base_data,
-                  cfg.base_dist.nepochs, cfg.base_dist.lr, cfg.general.ncond,
+                  cfg.top_transformer.nepochs, cfg.top_transformer.lr, cfg.general.ncond,
                   outputpath, name='f4f', device=device)
 
     f4flow.to(device)
