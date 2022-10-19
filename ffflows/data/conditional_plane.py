@@ -96,7 +96,7 @@ class RadialShift(ConditionalWrapper):
 
     def get_default_eval(self, n_test):
         """Set the data to some default condition and return a set of default points."""
-        self._create_data(shift=0)
+        self._create_data(shift=1)
         return torch.linspace(0, self.max_shift, n_test)
 
 
