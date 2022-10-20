@@ -47,7 +47,7 @@ def get_data(name, num_points, *args, **kwargs):
     assert name.lower() in datadict.keys(), f"Currently {name} is not supported. Choose one of '{datadict.keys()}'"
     # batch_size = num_points if batch_size is None else batch_size
     if name.lower() == 'ring':
-        return datadict[name.lower()](num_points, radius=0.5)
+        return datadict[name.lower()](num_points, radius=1.25)
     elif name.lower == 'anulus':
         return datadict[name.lower()](num_points)
     else:
