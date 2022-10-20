@@ -129,7 +129,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
             else:
                 inputs, context_l, context_r = data.to(device), None, None
 
-            logprob = -model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=inverse).mean()
+            logprob = -model.log_prob(inputs, input_context=context_l, target_context=context_r, inverse=inverse).mean()
 
             logprob.backward()
             optimizer.step()
@@ -146,7 +146,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
                 inputs, context_l, context_r = data.to(device), None, None
 
             with torch.no_grad():
-                v_loss[v_step] = -model.log_prob(inputs, context_l=context_l, context_r=context_r,
+                v_loss[v_step] = -model.log_prob(inputs, input_context=context_l, target_context=context_r,
                                                  inverse=inverse).mean()
         valid_loss[epoch] = v_loss.mean()
 
@@ -205,7 +205,7 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
             else:
                 inputs, context_l, context_r = data.to(device), None, None
 
-            logprob = -model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=inv).mean()
+            logprob = -model.log_prob(inputs, input_context=context_l, target_context=context_r, inverse=inv).mean()
 
             logprob.backward()
             optimizer.step()
@@ -225,7 +225,7 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
                     inputs, context_l, context_r = data[ddir].to(device), None, None
 
                 with torch.no_grad():
-                    v_loss[v_step] = -0.5 * model.log_prob(inputs, context_l=context_l, context_r=context_r,
+                    v_loss[v_step] = -0.5 * model.log_prob(inputs, input_context=context_l, target_context=context_r,
                                                            inverse=ddir).mean()
         valid_loss[epoch] = v_loss.mean()
 

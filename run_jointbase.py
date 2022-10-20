@@ -112,8 +112,8 @@ def main(cfg: DictConfig) -> None:
         # Plot the output densities
         plot_data(transformed, outputpath / f'flow_for_flow_{con.item():.2f}.png')
         # Get the transformation that results from going via the base distributions
-        left_bd_enc = f4flow.base_flow_inv.transform_to_noise(left_data, left_cond)
-        right_bd_dec, _ = f4flow.base_flow_fwd._transform.inverse(left_bd_enc, right_cond)
+        left_bd_enc = f4flow.base_flow_left.transform_to_noise(left_data, left_cond)
+        right_bd_dec, _ = f4flow.base_flow_right._transform.inverse(left_bd_enc, right_cond)
         # Plot how each point is shifted
         plot_arrays({
             'Input Data': left_data,
