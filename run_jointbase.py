@@ -73,7 +73,7 @@ def main(cfg: DictConfig) -> None:
 
     set_trainable(base_flow, False)
     for con in [0.25, 0.5, 0.75]:
-        con = torch.Tensor([con]).view(-1, 1)
+        con = torch.Tensor([con]).view(-1, 1).to(device)
         plot_data(base_flow.sample(int(1e5), context=con).squeeze(),
                   outputpath / f'base_density_{con.item()}.png')
 
@@ -103,8 +103,8 @@ def main(cfg: DictConfig) -> None:
 
     test_points = test_data.get_default_eval(4)
     for con in test_points: 
-        data = ConditionalDataToTarget(test_data.get_tuple(),con)
-        transformed, _ = f4flow.transform(*data.paired())
+        data = ConditionalDataToTarget(test_data.get_tuple(),con).paired()
+        transformed, _ = f4flow.transform(data[0].to(device),data[1].to(device))
         plot_data(transformed, outputpath / f'flow_for_flow_{con.item():.2f}.png')
 
 
