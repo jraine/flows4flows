@@ -45,12 +45,12 @@ class ConditionalWrapper(ConditionalPlaneDataset):
         #     condition = torch.cat([self.base_dataset.conditions, condition], axis=-1)
 
         self.data = data
-        self.conditions = condition
+        self.conditions = condition.reshape(self.data.shape[0],-1)
 
 
 class RotatedData(ConditionalWrapper):
 
-    def __init__(self, base_dataset, max_angle=360):
+    def __init__(self, base_dataset, max_angle=90):
         self.max_angle = max_angle
         super(RotatedData, self).__init__(base_dataset)
 
