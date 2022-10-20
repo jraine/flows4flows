@@ -4,6 +4,7 @@ output:
 
 general:
   data_dim: 2
+  n_points: 1e4
   ncond: 1
 
 base_dist:
@@ -28,7 +29,7 @@ top_transformer:
   load_path: None
   batch_size: 128
   lr: 1e-4
-  nepochs: 40
+  nepochs: 5
   flow4flow: delta
   gclip: 5
   nstack: 4

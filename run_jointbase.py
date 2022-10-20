@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from nflows.distributions import StandardNormal
 
 from utils import get_activation, get_data, get_flow4flow, train, spline_inn, get_conditional_data
-from plot import plot_data
+from plot import plot_data, plot_arrays
 
 from ffflows.data.dist_to_dist import ConditionalDataToData, ConditionalDataToTarget
 
@@ -48,8 +48,10 @@ def main(cfg: DictConfig) -> None:
     # Get training data
     def get_data(n_points):
         return get_conditional_data(cfg.base_dist.condition, cfg.base_dist.base_data, n_points)
-    base_data = DataLoader(dataset=get_data(int(1e4)), batch_size=cfg.base_dist.batch_size)
-    val_base_data = DataLoader(dataset=get_data(int(1e4)), batch_size=1000)
+
+    n_points = int(cfg.general.n_points)
+    base_data = DataLoader(dataset=get_data(n_points), batch_size=cfg.base_dist.batch_size)
+    val_base_data = DataLoader(dataset=get_data(n_points), batch_size=1000)
 
     # Train base
     base_flow = BaseFlow(spline_inn(cfg.general.data_dim,
@@ -72,10 +74,10 @@ def main(cfg: DictConfig) -> None:
                    outputpath, name='base', device=device)
 
     set_trainable(base_flow, False)
-    for con in [0.25, 0.5, 0.75]:
-        con = torch.Tensor([con]).view(-1, 1)
-        plot_data(base_flow.sample(int(1e5), context=con).squeeze(),
-                  outputpath / f'base_density_{con.item()}.png')
+    for right_cond in [0.25, 0.5, 0.75]:
+        right_cond = torch.Tensor([right_cond]).view(-1, 1)
+        plot_data(base_flow.sample(int(1e5), context=right_cond).squeeze(),
+                  outputpath / f'base_density_{right_cond.item()}.png')
 
     # Train Flow4Flow
     f4flow = get_flow4flow(cfg.top_transformer.flow4flow,
@@ -99,13 +101,25 @@ def main(cfg: DictConfig) -> None:
                   outputpath, name='f4f', device=device)
 
     f4flow.to(device)
-    test_data = get_data(int(1e4))
+    test_data = get_data(n_points)
 
-    test_points = test_data.get_default_eval(4)
-    for con in test_points: 
-        data = ConditionalDataToTarget(test_data.get_tuple(),con)
-        transformed, _ = f4flow.transform(*data.paired())
+    test_points = test_data.get_default_eval(6)
+    for con in test_points:
+        # Handle the broadcasting
+        left_data, left_cond, right_cond = ConditionalDataToTarget(test_data.get_tuple(), con).paired()
+        # Transform the data
+        transformed, _ = f4flow.transform(left_data, left_cond, right_cond)
+        # Plot the output densities
         plot_data(transformed, outputpath / f'flow_for_flow_{con.item():.2f}.png')
+        # Get the transformation that results from going via the base distributions
+        left_bd_enc = f4flow.base_flow_inv.transform_to_noise(left_data, left_cond)
+        right_bd_dec, _ = f4flow.base_flow_fwd._transform.inverse(left_bd_enc, right_cond)
+        # Plot how each point is shifted
+        plot_arrays({
+            'Input Data': left_data,
+            'FFF': transformed,
+            'BdTransfer': right_bd_dec
+        }, outputpath / f'colored_left_to_right_{con.item():.2f}.png')
 
 
 if __name__ == "__main__":
