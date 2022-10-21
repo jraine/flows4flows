@@ -12,120 +12,129 @@ class FlowForFlow(abc.ABC, flows.Flow):
     Holds the top flow as well as base distributions, and handles training steps for forward and backward.
     '''
 
-    def __init__(self, transform, distribution_fwd, distribution_inv=None, embedding_net=None):
+    def __init__(self, transform, distribution_right, distribution_left=None, embedding_net=None):
         """Constructor.
         Args:
             transform: A `Transform` object, it transforms data into noise.
-            distribution_fwd: A `Distribution` object, the base distribution for the data distribution on the forward pass of the flow
-            distribution_inv: (Optional) A `Distribution` object, the base distribution for the data distribution on the inverse pass of the flow. If not specified, same as distribution_fwd
+            distribution_right: A `Distribution` object, the base distribution for the data distribution on the forward pass of the flow
+            distribution_left: (Optional) A `Distribution` object, the base distribution for the data distribution on the inverse pass of the flow. If not specified, same as distribution_fwd
             embedding_net: A `nn.Module` which has trainable parameters to encode the
                 context (condition). It is trained jointly with the flow.
         """
-        super().__init__(transform, distribution_fwd, embedding_net)
-        self.base_flow_fwd = distribution_fwd
+        super().__init__(transform, distribution_right, embedding_net)
+        self.base_flow_right = distribution_right
         self._context_used_in_base = True
-        self.base_flow_inv = distribution_inv if distribution_inv is not None else distribution_fwd
+        self.base_flow_left = distribution_left if distribution_left is not None else distribution_right
 
     @abc.abstractmethod
-    def context_func(self, context_l, context_r):
+    def context_func(self, context_left, context_right):
+        """Given the context of the distribution on the left and right return the condition to be used by the flow."""
         return None
 
     @abc.abstractmethod
-    def _direction_func(self, context_l, context_r):
+    def _direction_func(self, input_context, target_context):
+        """Given the context of the input data and the target condition decide if this is going from left to right
+        (forward) or right to left (inverse)."""
         return None
 
-    def direction_func(self, context_l, context_r=None):
-        if context_l is None:
+    def direction_func(self, input_context, target_context=None):
+        if input_context is None:
             return None
         else:
-            return self._direction_func(context_l, context_r).view(-1)
+            return self._direction_func(input_context, target_context).view(-1)
 
     def set_forward_base(self):
         '''Just in case we need to change the base distribution in the subclass'''
-        self._distibution = self.base_flow_fwd
+        self._distibution = self.base_flow_right
 
     def set_backward_base(self):
         '''Just in case we need to change the base distribution in the subclass'''
-        self._distibution = self.base_flow_inv
+        self._distibution = self.base_flow_left
 
-    def __transform(self, inputs, context_l=None, context_r=None, inverse=False):
+    def __transform(self, inputs, input_context=None, target_context=None, inverse=False):
         '''Transform inputs with transformer given context.
         Inputs:
             inputs: Input Tensor for transformer
-            context_l: Context tensor for samples from left of transformer
-            context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
+            input_context: Context tensor for samples from left of transformer
+            target_context: Context tensor for samples from right of transformer. If None and left is set, uses left
             inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left
             or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.
         '''
-        if context_l is None:
+        if input_context is None:
             context = None
         else:
-            if context_r is not None:
-                context_r = torch.tile(context_r.view(-1, *context_l.view(context_l.shape[0], -1).shape[1:]),
-                                       (context_l.shape[0],)).view(context_l.shape) if \
-                context_r.view(-1, *context_l.view(context_l.shape[0], -1).shape[1:]).shape[0] == 1 else context_r
-            context = self._embedding_net(self.context_func(context_r, context_l))
+            if target_context is not None:
+                target_context = torch.tile(
+                    target_context.view(-1, *input_context.view(input_context.shape[0], -1).shape[1:]),
+                    (input_context.shape[0],)).view(input_context.shape) if \
+                    target_context.view(-1, *input_context.view(input_context.shape[0], -1).shape[1:]).shape[
+                        0] == 1 else target_context
+            # The ordering of the contexts needs to remain consistent
+            if inverse:
+                tup = (target_context, input_context)
+            else:
+                tup = (input_context, target_context)
+            context = self._embedding_net(self.context_func(*tup))
 
         transform = self._transform.inverse if inverse else self._transform
         y, logabsdet = transform(inputs, context=context)
 
         return y, logabsdet
 
-    def transform(self, inputs, context_l=None, context_r=None, inverse=False):
+    def transform(self, inputs, input_context=None, target_context=None, inverse=False):
         '''Transform inputs with transformer given context.
         Inputs:
             inputs: Input Tensor for transformer
-            context_l: Context tensor for samples from left of transformer
-            context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
+            input_context: Context tensor for samples from left of transformer
+            target_context: Context tensor for samples from right of transformer. If None and left is set, uses left
             inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left
             or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.
         '''
-        order = self.direction_func(context_l, context_r)
+        order = self.direction_func(input_context, target_context)
         if order is None:
-            outputs, logabsdet = self.__transform(inputs, context_l, context_r, inverse=inverse)
+            outputs, logabsdet = self.__transform(inputs, input_context, target_context, inverse=inverse)
         else:
             outputs = torch.zeros_like(inputs)
             logabsdet = torch.zeros(len(inputs)).to(inputs)
             for direction, mx in zip([True, False], [order, ~order]):
                 if torch.any(mx):
-                    outputs[mx], logabsdet[mx] = self.__transform(inputs[mx], context_l[mx], context_r[mx],
+                    outputs[mx], logabsdet[mx] = self.__transform(inputs[mx], input_context[mx], target_context[mx],
                                                                   inverse=direction)
         return outputs, logabsdet
 
-    def bd_log_prob(self, noise, context_l=None, context_r=None, inverse=False):
+    def bd_log_prob(self, noise, input_context=None, target_context=None, inverse=False):
         '''
         Base density log probabilites.
         Inputs:
             noise: Input Tensor for base density
-            context_l: Context tensor for samples from left of transformer
-            context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
+            input_context: Context tensor for samples from left of transformer
+            target_context: Context tensor for samples from right of transformer. If None and left is set, uses left
             inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left
             or right base density. Default False (forward)
         '''
-        order = self.direction_func(context_l, context_r)
+        order = self.direction_func(input_context, target_context)
         if order is None:
-            base_flow = self.base_flow_fwd if inverse is False else self.base_flow_inv
+            base_flow = self.base_flow_right if inverse is False else self.base_flow_left
             log_prob = base_flow.log_prob(noise)
         else:
             log_prob = torch.zeros(len(noise)).to(noise)
-            for base_flow, mx in zip([self.base_flow_fwd, self.base_flow_fwd], [order, ~order]):
+            for base_flow, mx in zip([self.base_flow_left, self.base_flow_right], [order, ~order]):
                 if torch.any(mx):
-                    log_prob[mx] = base_flow.log_prob(noise[mx], context=context_r[mx])
+                    log_prob[mx] = base_flow.log_prob(noise[mx], context=target_context[mx])
         return log_prob
 
-    def log_prob(self, inputs, context_l=None, context_r=None, inverse=False):
+    def log_prob(self, inputs, input_context=None, target_context=None, inverse=False):
         '''
         log probability of transformed inputs given context, use relevant base distribution based on forward or inverse, infered from context or specified from inverse
         Inputs:
             inputs: Input Tensor for transformer
-            context_l: Context tensor for samples from left of transformer
-            context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
+            input_context: Context tensor for samples from left of transformer
+            target_context: Context tensor for samples from right of transformer. If None and left is set, uses left
             inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left
             or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.
         '''
-
-        noise, logabsdet = self.transform(inputs, context_l, context_r, inverse)
-        log_prob = self.bd_log_prob(noise, context_l, context_r, inverse)
+        noise, logabsdet = self.transform(inputs, input_context, target_context, inverse)
+        log_prob = self.bd_log_prob(noise, input_context, target_context, inverse)
         return log_prob + logabsdet
 
     def _sample(self, num_samples, context):  # , inverse=False):
@@ -140,35 +149,35 @@ class FlowForFlow(abc.ABC, flows.Flow):
 
 class DistPenaltyFlowForFlow(FlowForFlow):
 
-    def __init__(self, transform, distribution_fwd, penalty, distribution_inv=None, embedding_net=None):
+    def __init__(self, transform, distribution_right, penalty, distribution_left=None, embedding_net=None):
         """Constructor.
         Args:
             transform: A `Transform` object, it transforms data into noise.
-            distribution_fwd: A `Distribution` object, the base distribution for the data distribution on the forward pass of the flow
-            distribution_inv: (Optional) A `Distribution` object, the base distribution for the data distribution on the inverse pass of the flow. If not specified, same as distribution_fwd
+            distribution_right: A `Distribution` object, the base distribution for the data distribution on the forward pass of the flow
+            distribution_left: (Optional) A `Distribution` object, the base distribution for the data distribution on the inverse pass of the flow. If not specified, same as distribution_fwd
             embedding_net: A `nn.Module` which has trainable parameters to encode the
                 context (condition). It is trained jointly with the flow.
         """
-        super().__init__(transform, distribution_fwd, distribution_inv=None, embedding_net=None)
+        super().__init__(transform, distribution_right, distribution_left=None, embedding_net=None)
         self.dist_penalty = penalty
 
     @abc.abstractmethod
     def distance_func(self, inputs, outputs):
         return None
 
-    def log_prob(self, inputs, context_l=None, context_r=None, inverse=False):
+    def log_prob(self, inputs, input_context=None, target_context=None, inverse=False):
         '''
         log probability of transformed inputs given context, use relevant base distribution based on forward or inverse, infered from context or specified from inverse
         Inputs:
             inputs: Input Tensor for transformer
-            context_l: Context tensor for samples from left of transformer
-            context_r: Context tensor for samples from right of transformer. If None and left is set, uses left
+            input_context: Context tensor for samples from left of transformer
+            target_context: Context tensor for samples from right of transformer. If None and left is set, uses left
             inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left
             or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.
         '''
 
-        noise, logabsdet = self.transform(inputs, context_l, context_r, inverse)
-        log_prob = self.bd_log_prob(noise, context_l, context_r, inverse)
+        noise, logabsdet = self.transform(inputs, input_context, target_context, inverse)
+        log_prob = self.bd_log_prob(noise, input_context, target_context, inverse)
         dist_pen = -self.distance_func(noise, inputs)
         return log_prob + logabsdet + dist_pen
 
@@ -216,15 +225,15 @@ class BaseFlow(flows.Flow):
     Constructed and used exactly like an nflows.Flow object.
     '''
 
-    def get_context(self, context, context_l):
-        return context_l if context_l is not None else context
+    def get_context(self, context, input_context):
+        return input_context if input_context is not None else context
 
-    def transform(self, inputs, context=None, context_l=None, context_r=None, inverse=False):
+    def transform(self, inputs, context=None, input_context=None, target_context=None, inverse=False):
         transform = self._transform.inverse if inverse else self._transform
-        y, logabsdet = transform(inputs, context=self.get_context(context, context_l))
+        y, logabsdet = transform(inputs, context=self.get_context(context, input_context))
         return y, logabsdet
 
-    def log_prob(self, inputs, context=None, context_l=None, context_r=None, inverse=False):
-        noise, logabsdet = self.transform(inputs, context_l, context_r, inverse)
-        log_prob = self._distribution.log_prob(noise, context=self.get_context(context, context_l))
+    def log_prob(self, inputs, context=None, input_context=None, target_context=None, inverse=False):
+        noise, logabsdet = self.transform(inputs, input_context, target_context, inverse)
+        log_prob = self._distribution.log_prob(noise, context=self.get_context(context, input_context))
         return log_prob + logabsdet

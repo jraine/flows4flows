@@ -198,17 +198,17 @@ def main(cfg : DictConfig) -> None:
     plot_data(left_to_right, outputpath / f'left_to_right_transform.png')
     right_to_left, _ = f4flow.transform(right_data, inverse=True)
     plot_data(right_to_left, outputpath / f'right_to_left_transform.png')
-    sample_left = f4flow.base_flow_inv.sample(int(1e5))
+    sample_left = f4flow.base_flow_left.sample(int(1e5))
     plot_data(sample_left, outputpath / f'f4f_left_sample.png')
     sample_to_right, _ = f4flow.transform(sample_left,inverse=False)
     plot_data(sample_to_right, outputpath / f'f4f_sample_left_transform_right.png')
-    sample_right = f4flow.base_flow_fwd.sample(int(1e5))
+    sample_right = f4flow.base_flow_right.sample(int(1e5))
     plot_data(sample_right, outputpath / f'f4f_right_sample.png')
     sample_to_left, _ = f4flow.transform(sample_right,inverse=True)
     plot_data(sample_to_left, outputpath / f'f4f_sample_right_transform_left.png')
 
-    left_bd_enc = f4flow.base_flow_inv.transform_to_noise(left_data)
-    right_bd_dec, _ = f4flow.base_flow_fwd._transform.inverse(left_bd_enc)
+    left_bd_enc = f4flow.base_flow_left.transform_to_noise(left_data)
+    right_bd_dec, _ = f4flow.base_flow_right._transform.inverse(left_bd_enc)
     plot_arrays({ 
         'Input Data': left_data,
         'FFF': left_to_right,

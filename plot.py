@@ -6,15 +6,16 @@ from scipy.stats import binned_statistic_2d
 
 def assign_colors(img, input_data):
     dt = tensor2numpy(input_data)
-    bins = np.linspace(-4, 4, 256)
+    bins = np.linspace(-4, 4, 255)
     _, _, _, color_ind = binned_statistic_2d(dt[:, 0], dt[:, 1], dt[:, 1], bins=(bins, bins),
                                              expand_binnumbers=True)
-
     return img[color_ind[0], color_ind[1]]
+
 
 def add_scatter(ax, data, colors):
     dt = tensor2numpy(data)
     ax.scatter(dt[:, 0], dt[:, 1], s=0.1, c=colors / 256, alpha=0.8)
+
 
 def make_colormap(plt=False):
     def arr_creat(upperleft, upperright, lowerleft, lowerright):
@@ -38,6 +39,7 @@ def make_colormap(plt=False):
 
     return img
 
+
 def plot_training(training, validation):
     fig, ax = plt.subplots(1, 1)
     ax.plot(tensor2numpy(training), label='Training')
@@ -45,15 +47,20 @@ def plot_training(training, validation):
     ax.legend()
     return fig
 
+
+def set_bounds(ax):
+    bound = 4
+    bounds = [[-bound, bound], [-bound, bound]]
+    ax.set_xlim(bounds[0])
+    ax.set_ylim(bounds[1])
+
 def plot_data(data, nm):
     data = tensor2numpy(data)
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    bound = 4
-    bounds = [[-bound, bound], [-bound, bound]]
     ax.hist2d(data[:, 0], data[:, 1], bins=256)
-    ax.set_xlim(bounds[0])
-    ax.set_ylim(bounds[1])
+    set_bounds(ax)
     plt.savefig(nm)
+
 
 def plot_arrays(dict_of_data, sv_nm, colors=None):
     n_figs = len(dict_of_data)
@@ -64,4 +71,5 @@ def plot_arrays(dict_of_data, sv_nm, colors=None):
             colors = assign_colors(img, data)
         add_scatter(ax[i], data, colors)
         ax[i].set_title(nm)
+        set_bounds(ax[i])
     fig.savefig(sv_nm)

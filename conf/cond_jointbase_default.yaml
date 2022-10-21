@@ -4,6 +4,7 @@ output:
 
 general:
   data_dim: 2
+  n_points: 1e4
   ncond: 1
 
 base_dist:
