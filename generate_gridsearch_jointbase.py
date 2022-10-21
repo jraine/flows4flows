@@ -28,29 +28,17 @@ def main():
 
     ###options to test
 
-    left_data = ["'ring'",
-                 "'concentricrings'",
-                 "'fourcircles'",
-                 "'checkerboard'",
-                 "'spirals'"]
-    right_data = [
-        # "'ring'",
-        "'concentricrings'",
-        #  "'fourcircles'",
-        "'checkerboard'",
-        #  "'spirals'"
-    ]
-    f4f_dir = [
-        "'alternate'",
-        "'forward'",
-        "'inverse'",
-        #  "'both'",
-        #  "'iterate'"
-    ]
+    data = ["'ring'",
+            "'concentricrings'",
+            "'fourcircles'",
+            "'checkerboard'",
+            "'spirals'"]
 
-    hpo.add_opt('base_dist.left.data', left_data, True)
-    hpo.add_opt('base_dist.right.data', right_data, True)
-    hpo.add_opt('top_transformer.direction', f4f_dir, True)
+    cond = ["'radial'"]
+    # cond = [ "'rotation'"]
+
+    hpo.add_opt('base_dist.base_data', data, True)
+    hpo.add_opt('base_dist.condition', cond, True)
 
     hpo.add_script_line('export XDG_RUNTIME_DIR=""')
     hpo.add_script_line('module load GCC/9.3.0 Singularity/3.7.3-Go-1.14', lastline=True)

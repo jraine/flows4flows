@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 from nflows.distributions import StandardNormal
 
-from utils import get_activation, get_data, get_flow4flow, train, spline_inn, get_conditional_data
+from utils import get_activation, get_data, get_flow4flow, train, spline_inn, get_conditional_data, tensor_to_str
 from plot import plot_data, plot_arrays
 
 from ffflows.data.dist_to_dist import ConditionalDataToData, ConditionalDataToTarget
@@ -74,10 +74,13 @@ def main(cfg: DictConfig) -> None:
                    outputpath, name='base', device=device)
 
     set_trainable(base_flow, False)
-    for right_cond in [0.25, 0.5, 0.75]:
-        right_cond = torch.Tensor([right_cond]).view(-1, 1)
-        plot_data(base_flow.sample(int(1e5), context=right_cond).squeeze(),
-                  outputpath / f'base_density_{right_cond.item()}.png')
+
+    base_flow.to(device)
+    for right_cond in get_data(20).get_default_eval(6):
+        nsamples = int(1e5)
+        right_cond = torch.Tensor([right_cond]).view(1, -1).to(device)
+        plot_data(base_flow.sample(nsamples, context=right_cond).squeeze(),
+                  outputpath / f'base_density_{tensor_to_str(right_cond)}.png')
 
     # Train Flow4Flow
     f4flow = get_flow4flow(cfg.top_transformer.flow4flow,
@@ -106,11 +109,12 @@ def main(cfg: DictConfig) -> None:
     test_points = test_data.get_default_eval(6)
     for con in test_points:
         # Handle the broadcasting
-        left_data, left_cond, right_cond = ConditionalDataToTarget(test_data.get_tuple(), con).paired()
+        left_data, left_cond, right_cond = [d.to(device) \
+                                            for d in ConditionalDataToTarget(test_data.get_tuple(), con).paired()]
         # Transform the data
         transformed, _ = f4flow.transform(left_data, left_cond, right_cond)
         # Plot the output densities
-        plot_data(transformed, outputpath / f'flow_for_flow_{con.item():.2f}.png')
+        plot_data(transformed, outputpath / f'flow_for_flow_{tensor_to_str(con)}.png')
         # Get the transformation that results from going via the base distributions
         left_bd_enc = f4flow.base_flow_left.transform_to_noise(left_data, left_cond)
         right_bd_dec, _ = f4flow.base_flow_right._transform.inverse(left_bd_enc, right_cond)
