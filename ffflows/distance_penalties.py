@@ -24,13 +24,23 @@ class CustomPenalty(BasePenalty):
         return self.lambda_fn(inputs, outputs)
 
 
-class LOnePenalty(BasePenalty):
+class WrapPytorchPenalty(BasePenalty):
+
+    def __init__(self, pytorch_method, weight):
+        super(WrapPytorchPenalty, self).__init__(weight)
+        self.torch_penalty = pytorch_method(reduction='none')
 
     def penalty_function(self, inputs, outputs):
-        return torch.nn.L1Loss(reduction='none')(outputs - inputs)
+        return self.torch_penalty(outputs, inputs)
 
 
-class LTwoPenalty(BasePenalty):
+class LOnePenalty(WrapPytorchPenalty):
 
-    def penalty_function(self, inputs, outputs):
-        return torch.nn.MSELoss(reduction='none')(outputs - inputs)
+    def __init__(self, weight):
+        super(LOnePenalty, self).__init__(nn.L1Loss, weight)
+
+
+class LTwoPenalty(WrapPytorchPenalty):
+
+    def __init__(self, weight):
+        super(LTwoPenalty, self).__init__(nn.MSELoss, weight)
