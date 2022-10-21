@@ -8,13 +8,13 @@ general:
   ncond: 1
 
 base_dist:
-  condition: radial
+  condition: rotation
   base_data: ring
   ncond: 1
   load_path: None
   batch_size: 128
   lr: 1e-4
-  nepochs: 1
+  nepochs: 400
   gclip: 5
   nstack: 4
   nblocks: 4
@@ -29,8 +29,8 @@ top_transformer:
   load_path: None
   batch_size: 128
   lr: 1e-4
-  nepochs: 1
-  flow4flow: delta
+  nepochs: 400
+  flow4flow: concat
   gclip: 5
   nstack: 4
   nblocks: 4
@@ -40,7 +40,7 @@ top_transformer:
   coupling: True
   coupling_width: 32
   coupling_depth: 2
-  penalty: "l1"
+  penalty: None
   penalty_weight: 1
 
 defaults:  

@@ -67,7 +67,7 @@ def get_conditional_data(conditional_type, base_name, num_points, *args, **kwarg
 
 
 def set_penalty(f4flow, penalty, weight):
-    if penalty is not None:
+    if penalty not in ['None', None]:
         if penalty == 'l1':
             penalty_constr = distance_penalties.LOnePenalty
         elif penalty == 'l2':
@@ -280,6 +280,6 @@ def tensor_to_str(tensor):
     if len(tensor.shape) < 2:
         return t_to_s(tensor)
     elif tensor.shape[0] > 1:
-        return [t_to_s(t) for t in ten]
+        return [t_to_s(t) for t in tensor]
     else:
         return t_to_s(tensor)
