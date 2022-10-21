@@ -55,7 +55,7 @@ class ConditionalWrapper(ConditionalPlaneDataset):
 
 class RotatedData(ConditionalWrapper):
 
-    def __init__(self, base_dataset, max_angle=90):
+    def __init__(self, base_dataset, max_angle=360):
         self.max_angle = max_angle
         super(RotatedData, self).__init__(base_dataset)
 
