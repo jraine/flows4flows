@@ -5,6 +5,8 @@ from torch.nn import functional as F
 import torch.nn as nn
 import torch
 
+from ffflows.distance_penalties import BasePenalty
+
 
 class FlowForFlow(abc.ABC, flows.Flow):
     '''
@@ -25,6 +27,13 @@ class FlowForFlow(abc.ABC, flows.Flow):
         self.base_flow_right = distribution_right
         self._context_used_in_base = True
         self.base_flow_left = distribution_left if distribution_left is not None else distribution_right
+
+        # Distance penalty
+        self.distance_object = BasePenalty()
+
+    def add_penalty(self, penalty_object):
+        assert isinstance(penalty_object, BasePenalty)
+        self.distance_object = penalty_object
 
     @abc.abstractmethod
     def context_func(self, context_left, context_right):
@@ -135,7 +144,8 @@ class FlowForFlow(abc.ABC, flows.Flow):
         '''
         noise, logabsdet = self.transform(inputs, input_context, target_context, inverse)
         log_prob = self.bd_log_prob(noise, input_context, target_context, inverse)
-        return log_prob + logabsdet
+        dist_pen = -self.distance_object(noise, inputs)
+        return log_prob + logabsdet + dist_pen
 
     def _sample(self, num_samples, context):  # , inverse=False):
         '''
@@ -149,7 +159,7 @@ class FlowForFlow(abc.ABC, flows.Flow):
 
 class DistPenaltyFlowForFlow(FlowForFlow):
 
-    def __init__(self, transform, distribution_right, penalty, distribution_left=None, embedding_net=None):
+    def __init__(self, transform, distribution_right, penalty_weight, distribution_left=None, embedding_net=None):
         """Constructor.
         Args:
             transform: A `Transform` object, it transforms data into noise.
@@ -159,7 +169,7 @@ class DistPenaltyFlowForFlow(FlowForFlow):
                 context (condition). It is trained jointly with the flow.
         """
         super().__init__(transform, distribution_right, distribution_left=None, embedding_net=None)
-        self.dist_penalty = penalty
+        self.register_buffer('penalty_weight', torch.Tensor(penalty_weight))
 
     @abc.abstractmethod
     def distance_func(self, inputs, outputs):
@@ -179,7 +189,7 @@ class DistPenaltyFlowForFlow(FlowForFlow):
         noise, logabsdet = self.transform(inputs, input_context, target_context, inverse)
         log_prob = self.bd_log_prob(noise, input_context, target_context, inverse)
         dist_pen = -self.distance_func(noise, inputs)
-        return log_prob + logabsdet + dist_pen
+        return log_prob + logabsdet + self.penalty_weight * dist_pen
 
 
 class DeltaFlowForFlow(FlowForFlow):
