@@ -3,6 +3,7 @@ import pathlib
 import torch
 from torch.nn import functional as F
 
+from ffflows import distance_penalties
 from ffflows.models import DeltaFlowForFlow, ConcatFlowForFlow, DiscreteBaseFlowForFlow, \
     DiscreteBaseConditionFlowForFlow
 from ffflows.data.plane import ConcentricRings, FourCircles, CheckerboardDataset, TwoSpiralsDataset, Star, \
@@ -64,6 +65,15 @@ def get_conditional_data(conditional_type, base_name, num_points, *args, **kwarg
         "ellipse": ElipseShift
     }[conditional_type.lower()]
     return data_wrapper(base_data)
+
+
+def set_penalty(f4flow, penalty, weight):
+    if penalty is not None:
+        if penalty == 'l1':
+            penalty_constr = distance_penalties.LOnePenalty
+        elif penalty == 'l2':
+            penalty_constr = distance_penalties.LTwoPenalty
+        f4flow.add_penalty(penalty_constr(weight))
 
 
 def get_flow4flow(name, *args, **kwargs):

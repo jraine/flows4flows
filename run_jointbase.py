@@ -9,7 +9,8 @@ from torch.utils.data import DataLoader
 
 from nflows.distributions import StandardNormal
 
-from utils import get_activation, get_data, get_flow4flow, train, spline_inn, get_conditional_data, tensor_to_str
+from utils import get_activation, get_data, get_flow4flow, train, spline_inn, get_conditional_data, tensor_to_str, \
+    set_penalty
 from plot import plot_data, plot_arrays
 
 from ffflows.data.dist_to_dist import ConditionalDataToData, ConditionalDataToTarget
@@ -94,6 +95,8 @@ def main(cfg: DictConfig) -> None:
                                       flow_for_flow=True
                                       ),
                            base_flow)
+    set_penalty(f4flow, cfg.top_transformer.penalty, cfg.top_transformer.penalty_weight)
+
     if pathlib.Path(cfg.top_transformer.load_path).is_file():
         print(f"Loading Flow4Flow from model: {cfg.top_transformer.load_path}")
         f4flow.load_state_dict(torch.load(cfg.top_transformer.load_path, map_location=device))
