@@ -47,7 +47,7 @@ def get_data(name, num_points, *args, **kwargs):
     assert name.lower() in datadict.keys(), f"Currently {name} is not supported. Choose one of '{datadict.keys()}'"
     # batch_size = num_points if batch_size is None else batch_size
     if name.lower() == 'ring':
-        return datadict[name.lower()](num_points, radius=0.5)
+        return datadict[name.lower()](num_points, radius=1.25)
     elif name.lower == 'anulus':
         return datadict[name.lower()](num_points)
     else:
@@ -129,7 +129,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
             else:
                 inputs, context_l, context_r = data.to(device), None, None
 
-            logprob = -model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=inverse).mean()
+            logprob = -model.log_prob(inputs, input_context=context_l, target_context=context_r, inverse=inverse).mean()
 
             logprob.backward()
             optimizer.step()
@@ -146,7 +146,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
                 inputs, context_l, context_r = data.to(device), None, None
 
             with torch.no_grad():
-                v_loss[v_step] = -model.log_prob(inputs, context_l=context_l, context_r=context_r,
+                v_loss[v_step] = -model.log_prob(inputs, input_context=context_l, target_context=context_r,
                                                  inverse=inverse).mean()
         valid_loss[epoch] = v_loss.mean()
 
@@ -205,7 +205,7 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
             else:
                 inputs, context_l, context_r = data.to(device), None, None
 
-            logprob = -model.log_prob(inputs, context_l=context_l, context_r=context_r, inverse=inv).mean()
+            logprob = -model.log_prob(inputs, input_context=context_l, target_context=context_r, inverse=inv).mean()
 
             logprob.backward()
             optimizer.step()
@@ -225,7 +225,7 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
                     inputs, context_l, context_r = data[ddir].to(device), None, None
 
                 with torch.no_grad():
-                    v_loss[v_step] = -0.5 * model.log_prob(inputs, context_l=context_l, context_r=context_r,
+                    v_loss[v_step] = -0.5 * model.log_prob(inputs, input_context=context_l, target_context=context_r,
                                                            inverse=ddir).mean()
         valid_loss[epoch] = v_loss.mean()
 
@@ -242,3 +242,23 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
 
     model.eval()
     return train_loss, valid_loss
+
+def tensor_to_str(tensor):
+    '''Convert a tensor to a string or list of strings. Can be a tensor of shape (), (N,), (N,M), and any other squeezeable shapes'''
+
+    ##TODO: Have this walk through all dims in the shape tensor to nested lists.
+    ###Can squeeze first, then get shape
+    def t_to_s(t):
+        if t.view(1,-1).shape[1] > 1:
+            return '_'.join([f'{a:.2f}' for a in t.squeeze()])
+        else:
+            return f'{t.squeeze():.2f}'
+
+    if len(tensor.shape) < 2:
+        return t_to_s(tensor)
+    elif tensor.shape[0] > 1:
+        return [t_to_s(t) for t in ten]
+    else:
+        return t_to_s(tensor)
+        
+        
