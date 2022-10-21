@@ -2,6 +2,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 import pathlib
 import ffflows
+from ffflows import distance_penalties
 from ffflows.models import BaseFlow
 from ffflows.utils import set_trainable
 
@@ -12,7 +13,7 @@ from nflows import transforms
 from nflows.distributions import StandardNormal
 from nflows.flows import Flow
 
-from utils import get_activation, get_data, get_flow4flow, train, train_batch_iterate, spline_inn
+from utils import get_activation, get_data, get_flow4flow, train, train_batch_iterate, spline_inn, set_penalty
 import matplotlib.pyplot as plt
 from plot import plot_training, plot_data, plot_arrays
 
@@ -137,9 +138,12 @@ def main(cfg : DictConfig) -> None:
                                                     context_features=ncond_f4f,
                                                     flow_for_flow=True
                                                    ),
-                                         distribution_fwd=base_flow_r,
-                                         distribution_inv=base_flow_l)   
-    
+                                         distribution_right=base_flow_r,
+                                         distribution_left=base_flow_l)
+
+    set_penalty(f4flow, cfg.top_transformer.penalty, cfg.top_transformer.penalty_weight)
+
+
     train_data = UnconditionalDataToData(get_data(cfg.base_dist.left.data, int(1e4)),
                                          get_data(cfg.base_dist.right.data, int(1e4))) #\
                  #if ncond_f4f is None \

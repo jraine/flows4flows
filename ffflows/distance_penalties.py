@@ -4,9 +4,9 @@ from torch import nn
 
 class BasePenalty(nn.Module):
 
-    def __init__(self, weight):
+    def __init__(self, weight=0.0):
         super(BasePenalty, self).__init__()
-        self.register_buffer('weight', torch.Tensor(weight))
+        self.register_buffer('weight', torch.Tensor([weight]))
 
     def penalty_function(self, inputs, outputs):
         return 0
@@ -31,7 +31,7 @@ class WrapPytorchPenalty(BasePenalty):
         self.torch_penalty = pytorch_method(reduction='none')
 
     def penalty_function(self, inputs, outputs):
-        return self.torch_penalty(outputs, inputs)
+        return self.torch_penalty(outputs, inputs).sum(-1)
 
 
 class LOnePenalty(WrapPytorchPenalty):
