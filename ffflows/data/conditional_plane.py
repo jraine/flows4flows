@@ -46,6 +46,11 @@ class ConditionalWrapper(ConditionalPlaneDataset):
 
         self.data = data
         self.conditions = condition.reshape(self.data.shape[0],-1)
+    
+    def get_default_eval(self, n_test):
+        """Set the data to some default condition and return a set of default points."""
+        return torch.linspace(0, 1, n_test)
+    
 
 
 class RotatedData(ConditionalWrapper):
@@ -77,6 +82,11 @@ class RotatedData(ConditionalWrapper):
         scale = np.sqrt(2 * 4 ** 2)
         data = cond_data / scale * 4
         return data, angles / self.max_angle
+
+    def get_default_eval(self, n_test):
+        """Set the data to some default condition and return a set of default points."""
+        return torch.linspace(0, 1, n_test+1)[1:]
+
 
 
 class RadialScale(ConditionalWrapper):
