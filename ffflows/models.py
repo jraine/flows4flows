@@ -207,7 +207,7 @@ class ConcatFlowForFlow(FlowForFlow):
         return torch.cat([x, y], axis=-1)
 
     def _direction_func(self, x, y):
-        return self.context_func(x, y) < 0
+        return y - x < 0
 
 
 class DiscreteBaseFlowForFlow(FlowForFlow):

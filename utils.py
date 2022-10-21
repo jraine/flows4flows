@@ -17,7 +17,6 @@ from plot import plot_training
 import matplotlib.pyplot as plt
 
 
-
 def get_activation(name, *args, **kwargs):
     actdict = {
         "linear": lambda x: x,
@@ -74,6 +73,19 @@ def set_penalty(f4flow, penalty, weight):
         elif penalty == 'l2':
             penalty_constr = distance_penalties.LTwoPenalty
         f4flow.add_penalty(penalty_constr(weight))
+
+
+def get_flow4flow_ncond(name):
+    # TODO merge this function with the get_flow4flow
+    f4fdict = {
+        "delta": 1,
+        "concat": 2,
+        "discretebase": 1,
+        "discretebasecondition": 1,
+    }
+    assert name.lower() in f4fdict, f"Currently {f4fdict} is not supported. Choose one of '{f4fdict.keys()}'"
+
+    return f4fdict[name]
 
 
 def get_flow4flow(name, *args, **kwargs):
@@ -253,13 +265,14 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
     model.eval()
     return train_loss, valid_loss
 
+
 def tensor_to_str(tensor):
     '''Convert a tensor to a string or list of strings. Can be a tensor of shape (), (N,), (N,M), and any other squeezeable shapes'''
 
     ##TODO: Have this walk through all dims in the shape tensor to nested lists.
     ###Can squeeze first, then get shape
     def t_to_s(t):
-        if t.view(1,-1).shape[1] > 1:
+        if t.view(1, -1).shape[1] > 1:
             return '_'.join([f'{a:.2f}' for a in t.squeeze()])
         else:
             return f'{t.squeeze():.2f}'
@@ -270,5 +283,3 @@ def tensor_to_str(tensor):
         return [t_to_s(t) for t in ten]
     else:
         return t_to_s(tensor)
-        
-        
