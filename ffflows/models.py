@@ -31,6 +31,10 @@ class FlowForFlow(abc.ABC, flows.Flow):
         # Distance penalty
         self.distance_object = BasePenalty()
 
+    def add_penalty(self, penalty_object):
+        assert isinstance(penalty_object, BasePenalty)
+        self.distance_object = penalty_object
+
     @abc.abstractmethod
     def context_func(self, context_left, context_right):
         """Given the context of the distribution on the left and right return the condition to be used by the flow."""

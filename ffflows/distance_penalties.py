@@ -15,4 +15,10 @@ class BasePenalty(nn.Module):
 class LOnePenalty(BasePenalty):
 
     def forward(self, inputs, outputs):
-        return self.weight * (outputs - inputs)
+        return self.weight * torch.nn.L1Loss(reduction='none')(outputs - inputs)
+
+
+class LTwoPenalty(BasePenalty):
+
+    def forward(self, inputs, outputs):
+        return self.weight * torch.nn.MSELoss(reduction='none')(outputs - inputs)
