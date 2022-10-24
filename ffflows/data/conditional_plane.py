@@ -85,6 +85,7 @@ class RotatedData(ConditionalWrapper):
 
     def get_default_eval(self, n_test):
         """Set the data to some default condition and return a set of default points."""
+        self._create_data(angles=0)
         return torch.linspace(0, 1, n_test + 1)[1:]
 
 
