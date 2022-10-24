@@ -50,8 +50,10 @@ def main():
                         #  "'iterate'"
                         ]
 
-    penalty = ["'l1'", "'l2'"]
-    penalty_weight = ["1", "10", "100"]
+    penalty = ["None"]
+    penalty_weight = ["0"]
+    # penalty = ["'l1'", "'l2'"]
+    # penalty_weight = ["1", "10", "100"]
 
     hpo.add_opt('base_dist.left.data',left_data,True)
     hpo.add_opt('base_dist.right.data',right_data,True)
