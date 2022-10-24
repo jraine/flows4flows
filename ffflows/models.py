@@ -209,15 +209,6 @@ class BaseFlow(flows.Flow):
     Constructed and used exactly like an nflows.Flow object.
     '''
 
-    def get_context(self, context, input_context):
-        return input_context if input_context is not None else context
-
-    def transform(self, inputs, context=None, input_context=None, target_context=None, inverse=False):
-        transform = self._transform.inverse if inverse else self._transform
-        y, logabsdet = transform(inputs, context=self.get_context(context, input_context))
-        return y, logabsdet
-
     def log_prob(self, inputs, context=None, input_context=None, target_context=None, inverse=False):
-        noise, logabsdet = self.transform(inputs, input_context, target_context, inverse)
-        log_prob = self._distribution.log_prob(noise, context=self.get_context(context, input_context))
-        return log_prob + logabsdet
+        context = input_context if input_context is not None else context
+        return super(BaseFlow, self).log_prob(inputs, context=context)
