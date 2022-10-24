@@ -4,6 +4,7 @@ output:
 
 general:
   data_dim: 2
+  n_points: 1e6
   ncond: 0
 
 base_dist:
@@ -12,7 +13,7 @@ base_dist:
     load_path: None
     batch_size: 128
     lr: 1e-4
-    nepochs: 400
+    nepochs: 4
     gclip: 5
     nstack: 4
     nblocks: 2
@@ -28,7 +29,7 @@ base_dist:
     load_path: None
     batch_size: 128
     lr: 1e-4
-    nepochs: 400
+    nepochs: 4
     gclip: 5
     nstack: 4
     nblocks: 2
@@ -43,7 +44,7 @@ top_transformer:
   load_path: None
   batch_size: 128
   lr: 1e-4
-  nepochs: 400
+  nepochs: 4
   flow4flow: discretebase
   direction: alternate
   iteration_steps: 5

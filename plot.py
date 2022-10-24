@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import pandas as pd
 from nflows.utils import tensor2numpy
 import numpy as np
 from scipy.stats import binned_statistic_2d
@@ -54,6 +55,7 @@ def set_bounds(ax):
     ax.set_xlim(bounds[0])
     ax.set_ylim(bounds[1])
 
+
 def plot_data(data, nm):
     data = tensor2numpy(data)
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))
@@ -62,7 +64,7 @@ def plot_data(data, nm):
     plt.savefig(nm)
 
 
-def plot_arrays(dict_of_data, sv_nm, colors=None):
+def plot_arrays(dict_of_data, sv_dir, sv_nm, colors=None):
     n_figs = len(dict_of_data)
     fig, ax = plt.subplots(1, n_figs, figsize=(6 * n_figs, 5))
     for i, (nm, data) in enumerate(dict_of_data.items()):
@@ -72,4 +74,11 @@ def plot_arrays(dict_of_data, sv_nm, colors=None):
         add_scatter(ax[i], data, colors)
         ax[i].set_title(nm)
         set_bounds(ax[i])
-    fig.savefig(sv_nm)
+    fig.savefig(sv_dir / f'colored_{sv_nm}.png')
+
+    # TODO want to do something like this but pandas is broken in the container?
+    # data = {k: tensor2numpy(x) for k, x in dict_of_data.items()}
+    # ln, r = data[list(data.keys())[0]].shape
+    # df = pd.DataFrame({k: x.ravel() for k, x in data.items()},
+    #                   index=pd.MultiIndex.from_product([np.arange(ln), np.arange(r)]))
+    # df.to_csv(sv_dir / f'{sv_nm}.csv', index=False)

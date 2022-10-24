@@ -128,7 +128,7 @@ def main(cfg: DictConfig) -> None:
             'Input Data': left_data,
             'FFF': transformed,
             'BdTransfer': right_bd_dec
-        }, outputpath / f'colored_left_to_right_{con.item():.2f}.png')
+        }, outputpath, f'{con.item():.2f}')
 
 
 if __name__ == "__main__":
