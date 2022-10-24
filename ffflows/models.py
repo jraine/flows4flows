@@ -157,6 +157,15 @@ class FlowForFlow(abc.ABC, flows.Flow):
         raise NotImplementedError()
 
 
+class NoContextFlowForFlow(FlowForFlow):
+
+    def context_func(self, x, y):
+        return torch.zeros_like(x)
+
+    def _direction_func(self, x, y):
+        return torch.zeros_like(x, dtype=torch.bool)
+
+
 class DeltaFlowForFlow(FlowForFlow):
 
     def context_func(self, x, y):

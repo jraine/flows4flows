@@ -6,7 +6,7 @@ from torch.nn import functional as F
 from ffflows import distance_penalties
 from ffflows.distance_penalties import AnnealedPenalty
 from ffflows.models import DeltaFlowForFlow, ConcatFlowForFlow, DiscreteBaseFlowForFlow, \
-    DiscreteBaseConditionFlowForFlow
+    DiscreteBaseConditionFlowForFlow, NoContextFlowForFlow
 from ffflows.data.plane import ConcentricRings, FourCircles, CheckerboardDataset, TwoSpiralsDataset, Star, \
     Anulus
 from ffflows.data.conditional_plane import RotatedData, RadialScale, ElipseShift
@@ -83,6 +83,7 @@ def get_flow4flow_ncond(name):
     # TODO merge this function with the get_flow4flow
     f4fdict = {
         "delta": 1,
+        "no_context": 1,
         "concat": 2,
         "discretebase": 1,
         "discretebasecondition": 1,
@@ -95,6 +96,7 @@ def get_flow4flow_ncond(name):
 def get_flow4flow(name, *args, **kwargs):
     f4fdict = {
         "delta": DeltaFlowForFlow,
+        "no_context": NoContextFlowForFlow,
         "concat": ConcatFlowForFlow,
         "discretebase": DiscreteBaseFlowForFlow,
         "discretebasecondition": DiscreteBaseConditionFlowForFlow,
