@@ -141,7 +141,7 @@ def main(cfg : DictConfig) -> None:
                                          distribution_right=base_flow_r,
                                          distribution_left=base_flow_l)
 
-    set_penalty(f4flow, cfg.top_transformer.penalty, cfg.top_transformer.penalty_weight)
+    set_penalty(f4flow, cfg.top_transformer.penalty, cfg.top_transformer.penalty_weight, cfg.top_transformer.anneal)
 
 
     train_data = UnconditionalDataToData(get_data(cfg.base_dist.left.data, int(1e4)),

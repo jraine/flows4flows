@@ -78,7 +78,7 @@ class FlowForFlow(abc.ABC, flows.Flow):
                     (input_context.shape[0],)).view(input_context.shape) if \
                     target_context.view(-1, *input_context.view(input_context.shape[0], -1).shape[1:]).shape[
                         0] == 1 else target_context
-            # The ordering of the contexts needs to remain consistent
+            # The ordering of the contexts needs to remain consistent to ensure invertibility
             if inverse:
                 tup = (target_context, input_context)
             else:
@@ -105,10 +105,10 @@ class FlowForFlow(abc.ABC, flows.Flow):
         else:
             outputs = torch.zeros_like(inputs)
             logabsdet = torch.zeros(len(inputs)).to(inputs)
-            for direction, mx in zip([True, False], [order, ~order]):
+            for inverse, mx in zip([True, False], [order, ~order]):
                 if torch.any(mx):
                     outputs[mx], logabsdet[mx] = self.__transform(inputs[mx], input_context[mx], target_context[mx],
-                                                                  inverse=direction)
+                                                                  inverse=inverse)
         return outputs, logabsdet
 
     def bd_log_prob(self, noise, input_context=None, target_context=None, inverse=False):
@@ -155,41 +155,6 @@ class FlowForFlow(abc.ABC, flows.Flow):
 
     def sample_and_log_prob(self, num_samples, context=None):
         raise NotImplementedError()
-
-
-class DistPenaltyFlowForFlow(FlowForFlow):
-
-    def __init__(self, transform, distribution_right, penalty_weight, distribution_left=None, embedding_net=None):
-        """Constructor.
-        Args:
-            transform: A `Transform` object, it transforms data into noise.
-            distribution_right: A `Distribution` object, the base distribution for the data distribution on the forward pass of the flow
-            distribution_left: (Optional) A `Distribution` object, the base distribution for the data distribution on the inverse pass of the flow. If not specified, same as distribution_fwd
-            embedding_net: A `nn.Module` which has trainable parameters to encode the
-                context (condition). It is trained jointly with the flow.
-        """
-        super().__init__(transform, distribution_right, distribution_left=None, embedding_net=None)
-        self.register_buffer('penalty_weight', torch.Tensor(penalty_weight))
-
-    @abc.abstractmethod
-    def distance_func(self, inputs, outputs):
-        return None
-
-    def log_prob(self, inputs, input_context=None, target_context=None, inverse=False):
-        '''
-        log probability of transformed inputs given context, use relevant base distribution based on forward or inverse, infered from context or specified from inverse
-        Inputs:
-            inputs: Input Tensor for transformer
-            input_context: Context tensor for samples from left of transformer
-            target_context: Context tensor for samples from right of transformer. If None and left is set, uses left
-            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left
-            or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.
-        '''
-
-        noise, logabsdet = self.transform(inputs, input_context, target_context, inverse)
-        log_prob = self.bd_log_prob(noise, input_context, target_context, inverse)
-        dist_pen = -self.distance_func(noise, inputs)
-        return log_prob + logabsdet + self.penalty_weight * dist_pen
 
 
 class DeltaFlowForFlow(FlowForFlow):

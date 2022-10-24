@@ -96,7 +96,7 @@ def main(cfg: DictConfig) -> None:
                                       flow_for_flow=True
                                       ),
                            base_flow)
-    set_penalty(f4flow, cfg.top_transformer.penalty, cfg.top_transformer.penalty_weight)
+    set_penalty(f4flow, cfg.top_transformer.penalty, cfg.top_transformer.penalty_weight, cfg.top_transformer.anneal)
 
     if pathlib.Path(cfg.top_transformer.load_path).is_file():
         print(f"Loading Flow4Flow from model: {cfg.top_transformer.load_path}")

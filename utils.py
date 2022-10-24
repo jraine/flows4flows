@@ -4,6 +4,7 @@ import torch
 from torch.nn import functional as F
 
 from ffflows import distance_penalties
+from ffflows.distance_penalties import AnnealedPenalty
 from ffflows.models import DeltaFlowForFlow, ConcatFlowForFlow, DiscreteBaseFlowForFlow, \
     DiscreteBaseConditionFlowForFlow
 from ffflows.data.plane import ConcentricRings, FourCircles, CheckerboardDataset, TwoSpiralsDataset, Star, \
@@ -66,13 +67,16 @@ def get_conditional_data(conditional_type, base_name, num_points, *args, **kwarg
     return data_wrapper(base_data)
 
 
-def set_penalty(f4flow, penalty, weight):
+def set_penalty(f4flow, penalty, weight, anneal=False):
     if penalty not in ['None', None]:
         if penalty == 'l1':
             penalty_constr = distance_penalties.LOnePenalty
         elif penalty == 'l2':
             penalty_constr = distance_penalties.LTwoPenalty
-        f4flow.add_penalty(penalty_constr(weight))
+        penalty = penalty_constr(weight)
+        if anneal:
+            penalty = AnnealedPenalty(penalty)
+        f4flow.add_penalty(penalty)
 
 
 def get_flow4flow_ncond(name):
@@ -135,6 +139,9 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
     num_steps = len(train_data) * n_epochs
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=num_steps, last_epoch=-1,
                                                            eta_min=0)
+    if hasattr(model, 'distance_object'):
+        if hasattr(model.distance_object, 'set_n_steps'):
+            model.distance_object.set_n_steps(num_steps)
     train_loss = torch.zeros(n_epochs)
     valid_loss = torch.zeros(n_epochs)
     for epoch in range(n_epochs):
@@ -146,12 +153,13 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
 
             optimizer.zero_grad()
             if ncond is not None:
-                inputs, context_l = data[0].to(device), data[1].to(device)
-                context_r = shuffle_tensor(context_l) if rand_perm_target else None
+                inputs, input_context = data[0].to(device), data[1].to(device)
+                target_context = shuffle_tensor(input_context) if rand_perm_target else None
             else:
-                inputs, context_l, context_r = data.to(device), None, None
+                inputs, input_context, target_context = data.to(device), None, None
 
-            logprob = -model.log_prob(inputs, input_context=context_l, target_context=context_r, inverse=inverse).mean()
+            logprob = -model.log_prob(inputs, input_context=input_context, target_context=target_context,
+                                      inverse=inverse).mean()
 
             logprob.backward()
             optimizer.step()
@@ -162,13 +170,13 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
         v_loss = torch.zeros(len(val_data))
         for v_step, data in enumerate(val_data):
             if ncond is not None:
-                inputs, context_l = data[0].to(device), data[1].to(device)
-                context_r = shuffle_tensor(context_l) if rand_perm_target else None
+                inputs, input_context = data[0].to(device), data[1].to(device)
+                target_context = shuffle_tensor(input_context) if rand_perm_target else None
             else:
-                inputs, context_l, context_r = data.to(device), None, None
+                inputs, input_context, target_context = data.to(device), None, None
 
             with torch.no_grad():
-                v_loss[v_step] = -model.log_prob(inputs, input_context=context_l, target_context=context_r,
+                v_loss[v_step] = -model.log_prob(inputs, input_context=input_context, target_context=target_context,
                                                  inverse=inverse).mean()
         valid_loss[epoch] = v_loss.mean()
 
@@ -193,7 +201,7 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
     #     train_data.paired() and val_data.paired()
     # except(AttributeError, TypeError):
     #   raise AssertionError('Training data should be a DataToData object')
-
+    # TODO block this to reduce on code duplication
     save_path = pathlib.Path(path / name)
     save_path.mkdir(parents=True, exist_ok=True)
 
@@ -203,6 +211,8 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
     num_steps = len(train_data) * n_epochs
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=num_steps, last_epoch=-1,
                                                            eta_min=0)
+    if hasattr(model, 'distance_object.set_n_steps'):
+        model.distance_object.set_n_steps(num_steps)
     train_loss = torch.zeros(n_epochs)
     valid_loss = torch.zeros(n_epochs)
     for epoch in range(n_epochs):
