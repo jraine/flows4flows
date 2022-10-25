@@ -13,6 +13,10 @@ from ffflows.data.conditional_plane import RotatedData, RadialScale, ElipseShift
 from ffflows.utils import shuffle_tensor
 
 from nflows import transforms
+from nflows.utils import tensor2numpy
+
+import pandas as pd
+import numpy as np
 
 from plot import plot_training
 import matplotlib.pyplot as plt
@@ -43,14 +47,15 @@ def get_data(name, num_points, *args, **kwargs):
         "fourcircles": FourCircles,
         "checkerboard": CheckerboardDataset,
         "spirals": TwoSpiralsDataset,
-        "star": Star
+        "star": Star,
+        "EightStar": Star,
     }
     assert name.lower() in datadict.keys(), f"Currently {name} is not supported. Choose one of '{datadict.keys()}'"
     # batch_size = num_points if batch_size is None else batch_size
     if name.lower() == 'ring':
         return datadict[name.lower()](num_points, radius=1.25)
-    elif name.lower == 'anulus':
-        return datadict[name.lower()](num_points)
+    elif name.lower == 'EightStar':
+        return datadict[name.lower()](num_points, num_bars=8)
     else:
         return datadict[name.lower()](num_points)
     # return datadict[name.lower()](num_points)
@@ -294,3 +299,20 @@ def tensor_to_str(tensor):
         return [t_to_s(t) for t in tensor]
     else:
         return t_to_s(tensor)
+
+def dump_to_df(*args, col_names=None):
+    data = [tensor2numpy(d) for d in args]
+    if len(np.unique(lens := [len(d) for d in data])) != 1:
+        print(f"Arrays not all same length, received f{lens}")
+        exit(50)
+    elif len(np.unique(shapes := [d.shape[:-1] for d in data])) != 1:
+        print(f"Arrays not all same shape up until last axis, received f{shapes}")
+        exit(51)
+    data = np.concatenate(data,axis=-1)
+
+    if col_names is not None:
+        cols = col_names
+    else:
+        cols = [f'Array{i}' for i in range(len(args))]
+
+    return pd.DataFrame(data,columns=cols)
