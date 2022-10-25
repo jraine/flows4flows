@@ -9,7 +9,8 @@ from torch.utils.data import DataLoader
 
 from nflows.distributions import StandardNormal
 
-from utils import get_activation, get_data, get_flow4flow, train, spline_inn, get_conditional_data, tensor_to_str
+from utils import get_activation, get_data, get_flow4flow, train, spline_inn, get_conditional_data, tensor_to_str, \
+    set_penalty, get_flow4flow_ncond
 from plot import plot_data, plot_arrays
 
 from ffflows.data.dist_to_dist import ConditionalDataToData, ConditionalDataToTarget
@@ -83,17 +84,21 @@ def main(cfg: DictConfig) -> None:
                   outputpath / f'base_density_{tensor_to_str(right_cond)}.png')
 
     # Train Flow4Flow
+    n_cond = get_flow4flow_ncond(cfg.top_transformer.flow4flow) * cfg.general.ncond
     f4flow = get_flow4flow(cfg.top_transformer.flow4flow,
                            spline_inn(cfg.general.data_dim,
                                       nodes=cfg.top_transformer.nnodes,
                                       num_blocks=cfg.top_transformer.nblocks,
                                       num_stack=cfg.top_transformer.nstack,
+                                      tail_bound=4.0,
                                       activation=get_activation(cfg.top_transformer.activation),
                                       num_bins=cfg.top_transformer.nbins,
-                                      context_features=cfg.general.ncond,
+                                      context_features=n_cond,
                                       flow_for_flow=True
                                       ),
                            base_flow)
+    set_penalty(f4flow, cfg.top_transformer.penalty, cfg.top_transformer.penalty_weight, cfg.top_transformer.anneal)
+
     if pathlib.Path(cfg.top_transformer.load_path).is_file():
         print(f"Loading Flow4Flow from model: {cfg.top_transformer.load_path}")
         f4flow.load_state_dict(torch.load(cfg.top_transformer.load_path, map_location=device))
@@ -123,7 +128,7 @@ def main(cfg: DictConfig) -> None:
             'Input Data': left_data,
             'FFF': transformed,
             'BdTransfer': right_bd_dec
-        }, outputpath / f'colored_left_to_right_{con.item():.2f}.png')
+        }, outputpath, f'{con.item():.2f}')
 
 
 if __name__ == "__main__":
