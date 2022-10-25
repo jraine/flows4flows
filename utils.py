@@ -54,7 +54,7 @@ def get_data(name, num_points, *args, **kwargs):
     # batch_size = num_points if batch_size is None else batch_size
     if name.lower() == 'ring':
         return datadict[name.lower()](num_points, radius=1.25)
-    elif name.lower == 'EightStar':
+    elif name.lower == 'eightstar':
         return datadict[name.lower()](num_points, num_bars=8)
     else:
         return datadict[name.lower()](num_points)
