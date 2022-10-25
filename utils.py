@@ -48,7 +48,7 @@ def get_data(name, num_points, *args, **kwargs):
         "checkerboard": CheckerboardDataset,
         "spirals": TwoSpiralsDataset,
         "star": Star,
-        "EightStar": Star,
+        "eightstar": Star,
     }
     assert name.lower() in datadict.keys(), f"Currently {name} is not supported. Choose one of '{datadict.keys()}'"
     # batch_size = num_points if batch_size is None else batch_size
