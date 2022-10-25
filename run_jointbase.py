@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from nflows.distributions import StandardNormal
 
 from utils import get_activation, get_data, get_flow4flow, train, spline_inn, get_conditional_data, tensor_to_str, \
-    set_penalty, get_flow4flow_ncond
+    set_penalty, get_flow4flow_ncond, dump_to_df
 from plot import plot_data, plot_arrays
 
 from ffflows.data.dist_to_dist import ConditionalDataToData, ConditionalDataToTarget
@@ -59,12 +59,13 @@ def main(cfg: DictConfig) -> None:
                                     nodes=cfg.base_dist.nnodes,
                                     num_blocks=cfg.base_dist.nblocks,
                                     num_stack=cfg.base_dist.nstack,
+                                    tail_bound=4.0,
                                     activation=get_activation(cfg.base_dist.activation),
                                     num_bins=cfg.base_dist.nbins,
                                     context_features=cfg.general.ncond
                                     ),
                          StandardNormal([cfg.general.data_dim])
-                         )
+                        )
     if pathlib.Path(cfg.base_dist.load_path).is_file():
         print(f"Loading base from model: {cfg.base_dist.load_path}")
         base_flow.load_state_dict(torch.load(cfg.base_dist.load_path, map_location=device))
@@ -77,12 +78,18 @@ def main(cfg: DictConfig) -> None:
     set_trainable(base_flow, False)
 
     base_flow.to(device)
-    for right_cond in get_data(20).get_default_eval(6):
+
+    nevalpoints = 6
+    bd_samples = []
+    for right_cond in (evals := get_data(20).get_default_eval(nevalpoints)):
         nsamples = int(1e5)
         right_cond = torch.Tensor([right_cond]).view(1, -1).to(device)
-        plot_data(base_flow.sample(nsamples, context=right_cond).squeeze(),
+        plot_data(sampled := base_flow.sample(nsamples, context=right_cond).squeeze(),
                   outputpath / f'base_density_{tensor_to_str(right_cond)}.png')
-
+        bd_samples.append(sampled)
+    df = dump_to_df(*bd_samples,col_names=[f'cond_{ev:.2f}_{coord}'.replace('.','_') for ev in evals for coord in ['x', 'y']])
+    df.to_hdf(outputpath / 'eval_data.h5', f'base_dist')
+        
     # Train Flow4Flow
     n_cond = get_flow4flow_ncond(cfg.top_transformer.flow4flow) * cfg.general.ncond
     f4flow = get_flow4flow(cfg.top_transformer.flow4flow,
@@ -129,6 +136,13 @@ def main(cfg: DictConfig) -> None:
             'FFF': transformed,
             'BdTransfer': right_bd_dec
         }, outputpath, f'{con.item():.2f}')
+
+        ##dump data
+        df = dump_to_df(left_data, left_cond, right_cond, transformed, left_bd_enc, right_bd_dec,
+                        col_names=['input_x','input_y','left_cond','right_cond',
+                                   'transformed_x','transformed_y','left_enc_x','left_enc_y',
+                                   'base_transfer_x','base_transfer_y'])
+        df.to_hdf(outputpath / 'eval_data.h5', f'f4f_{con:.2f}'.replace('.','_'))
 
 
 if __name__ == "__main__":

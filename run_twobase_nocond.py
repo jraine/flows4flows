@@ -13,7 +13,7 @@ from nflows import transforms
 from nflows.distributions import StandardNormal
 from nflows.flows import Flow
 
-from utils import get_activation, get_data, get_flow4flow, train, train_batch_iterate, spline_inn, set_penalty
+from utils import get_activation, get_data, get_flow4flow, train, train_batch_iterate, spline_inn, set_penalty, dump_to_df
 import matplotlib.pyplot as plt
 from plot import plot_training, plot_data, plot_arrays
 
@@ -205,11 +205,11 @@ def main(cfg: DictConfig) -> None:
     plot_data(left_to_right, outputpath / f'left_to_right_transform.png')
     right_to_left, _ = f4flow.transform(right_data, inverse=True)
     plot_data(right_to_left, outputpath / f'right_to_left_transform.png')
-    sample_left = f4flow.base_flow_left.sample(int(1e5))
+    sample_left = f4flow.base_flow_left.sample(n_points)
     plot_data(sample_left, outputpath / f'f4f_left_sample.png')
     sample_to_right, _ = f4flow.transform(sample_left, inverse=False)
     plot_data(sample_to_right, outputpath / f'f4f_sample_left_transform_right.png')
-    sample_right = f4flow.base_flow_right.sample(int(1e5))
+    sample_right = f4flow.base_flow_right.sample(n_points)
     plot_data(sample_right, outputpath / f'f4f_right_sample.png')
     sample_to_left, _ = f4flow.transform(sample_right, inverse=True)
     plot_data(sample_to_left, outputpath / f'f4f_sample_right_transform_left.png')
@@ -221,6 +221,12 @@ def main(cfg: DictConfig) -> None:
         'FFF': left_to_right,
         'BdTransfer': right_bd_dec
     }, outputpath, 'left_to_right.png')
+
+    df = dump_to_df(left_data, right_data, left_to_right, right_to_left,
+                    sample_to_right, sample_to_left, left_bd_enc, right_bd_dec,
+                    col_names=[f'{name}_{coord}' for name in ['left_data','right_data','left_to_right','right_to_left',
+                             'sample_to_right','sample_to_left','left_enc', 'base_transfer'] for coord in ['x','y'] ])
+    df.to_hdf(outputpath / 'eval_data.h5', 'f4f')
 
 
 if __name__ == "__main__":
