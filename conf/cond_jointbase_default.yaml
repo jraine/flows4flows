@@ -4,7 +4,7 @@ output:
 
 general:
   data_dim: 2
-  n_points: 1e4
+  n_points: 1e6
   ncond: 1
 
 base_dist:
@@ -14,7 +14,7 @@ base_dist:
   load_path: None
   batch_size: 128
   lr: 1e-4
-  nepochs: 40
+  nepochs: 4
   gclip: 5
   nstack: 4
   nblocks: 4
@@ -29,7 +29,7 @@ top_transformer:
   load_path: None
   batch_size: 128
   lr: 1e-4
-  nepochs: 40
+  nepochs: 4 
   flow4flow: delta
   gclip: 5
   nstack: 4
@@ -40,8 +40,9 @@ top_transformer:
   coupling: True
   coupling_width: 32
   coupling_depth: 2
-  penalty: "l1"
+  penalty: None
   penalty_weight: 1
+  anneal: 1
 
 defaults:  
   - _self_  
