@@ -55,7 +55,7 @@ class ConditionalWrapper(ConditionalPlaneDataset):
 
 class RotatedData(ConditionalWrapper):
 
-    def __init__(self, base_dataset, max_angle=360):
+    def __init__(self, base_dataset, max_angle=45):
         self.max_angle = max_angle
         super(RotatedData, self).__init__(base_dataset)
 
@@ -91,8 +91,9 @@ class RotatedData(ConditionalWrapper):
 
 class RadialScale(ConditionalWrapper):
 
-    def __init__(self, base_dataset, max_scale=1):
+    def __init__(self, base_dataset, max_scale=1, minscale=0.2):
         self.max_scale = max_scale
+        self.min_scale = minscale
         super(RadialScale, self).__init__(base_dataset)
 
     def _get_conditional(self, scale=None):
@@ -100,14 +101,15 @@ class RadialScale(ConditionalWrapper):
         if scale is None:
             # When sampling in 2D there is a volume correction for the radius which is accounted for with the square
             # root
-            scale = np.random.rand(self.num_points).reshape(-1, 1) ** 0.5 * self.max_scale
+            scale = np.random.rand(self.num_points).reshape(-1, 1) ** 0.5 * (
+                        self.max_scale - self.min_scale) + self.min_scale
         cond_data = self.base_dataset.data * scale
         return cond_data, scale
 
     def get_default_eval(self, n_test):
         """Set the data to some default condition and return a set of default points."""
         self._create_data(scale=1)
-        return torch.linspace(0, self.max_scale, n_test + 1)[1:]
+        return torch.linspace(self.min_scale, self.max_scale, n_test + 1)[1:]
 
 
 class ElipseShift(ConditionalWrapper):

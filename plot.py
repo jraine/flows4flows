@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import pandas as pd
+# import pandas as pd
 from nflows.utils import tensor2numpy
 import numpy as np
 from scipy.stats import binned_statistic_2d
@@ -76,9 +76,9 @@ def plot_arrays(dict_of_data, sv_dir, sv_nm, colors=None):
         set_bounds(ax[i])
     fig.savefig(sv_dir / f'colored_{sv_nm}.png')
 
-    # TODO want to do something like this but pandas is broken in the container?
-    data = {k: tensor2numpy(x) for k, x in dict_of_data.items()}
-    ln, r = data[list(data.keys())[0]].shape
-    df = pd.DataFrame({k: x.ravel() for k, x in data.items()},
-                      index=pd.MultiIndex.from_product([np.arange(ln), np.arange(r)]))
-    df.to_csv(sv_dir / f'{sv_nm}.csv', index=False)
+    # # TODO want to do something like this but pandas is broken in the container?
+    # data = {k: tensor2numpy(x) for k, x in dict_of_data.items()}
+    # ln, r = data[list(data.keys())[0]].shape
+    # df = pd.DataFrame({k: x.ravel() for k, x in data.items()},
+    #                   index=pd.MultiIndex.from_product([np.arange(ln), np.arange(r)]))
+    # df.to_csv(sv_dir / f'{sv_nm}.csv', index=False)
