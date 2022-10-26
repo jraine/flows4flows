@@ -1,6 +1,11 @@
 import matplotlib
+import pandas as pd
+
+from utils import get_numpy_data
+
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
+
 plt.switch_backend('agg')
 # import pandas as pd
 from nflows.utils import tensor2numpy
@@ -85,3 +90,58 @@ def plot_arrays(dict_of_data, sv_dir, sv_nm, colors=None):
     # df = pd.DataFrame({k: x.ravel() for k, x in data.items()},
     #                   index=pd.MultiIndex.from_product([np.arange(ln), np.arange(r)]))
     # df.to_csv(sv_dir / f'{sv_nm}.csv', index=False)
+
+
+def plot_grid(grid, columns, nm, n_points=int(1e4)):
+    """
+    Plot a grid of figures showing inputs to outputs
+    :param grid: A dictionary with keys input_to_target indexing paths to hdf5 saved pandas dataframes.
+    :param columns: The columns of the data (loaded from the above dataframe) to plot.
+    :param nm: Name with which to save the plot
+    :param n_points: Number of points to sample for showing the input/target distributions
+    :return:
+    """
+    inps = []
+    trgts = []
+    for entry in grid:
+        i, _, t = entry.split('_')
+        inps += [i]
+        trgts += [t]
+
+    inps = np.unique(inps)
+    trgts = np.unique(trgts)
+
+    def add_2d_hist(axis, data):
+        axis.hist2d(data[:, 0], data[:, 1])
+        set_bounds(axis)
+
+    N_inputs = len(inps)
+    N_targets = len(trgts)
+
+    # Add one because we want to plot the data around the perimeter.
+    fig, ax = plt.subplots(N_inputs + 1, N_targets + 1,
+                           figsize=(5 * (N_targets + 1), 5 * (N_inputs + 1)))
+    fig.delaxes(fig.axes[0])
+
+    for i, inp in enumerate(inps):
+        data = get_numpy_data(inp, n_points)
+        add_2d_hist(ax[i + 1, 0], data)
+
+    for i, inp in enumerate(trgts):
+        data = get_numpy_data(inp, n_points)
+        add_2d_hist(ax[0, i + 1], data)
+
+    for i, inp in enumerate(inps):
+        for j, trgt in enumerate(trgts):
+            data = pd.read_hdf(grid[f'{inp}_to_{trgt}'])[columns].to_numpy()
+            add_2d_hist(ax[i + 1, j + 1], data)
+
+    # add a big axis, hide frame
+    fig.add_subplot(111, frameon=False)
+    # hide tick and tick label of the big axis
+    plt.tick_params(labelcolor='none', which='both', top=False, bottom=False, left=False, right=False)
+    plt.ylabel("Input", fontsize=40)
+    plt.title("Target", fontsize=40, pad=30)
+
+    fig.tight_layout()
+    fig.savefig(nm)
