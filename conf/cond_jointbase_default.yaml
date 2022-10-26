@@ -9,17 +9,17 @@ general:
 
 base_dist:
   condition: radial
-  base_data: ring
+  base_data: spirals
   ncond: 1
   load_path: None
   batch_size: 128
   lr: 1e-4
-  nepochs: 4
+  nepochs: 32
   gclip: 5
   nstack: 4
-  nblocks: 4
-  nnodes: 20
-  nbins: 4
+  nblocks: 2
+  nnodes: 128
+  nbins: 8
   activation: relu
   coupling: True
   coupling_width: 32
@@ -29,13 +29,13 @@ top_transformer:
   load_path: None
   batch_size: 128
   lr: 1e-4
-  nepochs: 4 
+  nepochs: 12
   flow4flow: delta
   gclip: 5
   nstack: 4
-  nblocks: 4
-  nnodes: 20
-  nbins: 4
+  nblocks: 2
+  nnodes: 128
+  nbins: 8
   activation: relu
   coupling: True
   coupling_width: 32

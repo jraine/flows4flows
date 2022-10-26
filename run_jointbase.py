@@ -51,8 +51,15 @@ def main(cfg: DictConfig) -> None:
         return get_conditional_data(cfg.base_dist.condition, cfg.base_dist.base_data, n_points)
 
     n_points = int(cfg.general.n_points)
-    base_data = DataLoader(dataset=get_data(n_points), batch_size=cfg.base_dist.batch_size, shuffle=True)
-    val_base_data = DataLoader(dataset=get_data(n_points), batch_size=1000)
+    base_data = DataLoader(
+        dataset=get_data(n_points),
+        batch_size=cfg.base_dist.batch_size,
+        shuffle=True
+    )
+    val_base_data = DataLoader(
+        dataset=get_data(n_points),
+        batch_size=1000
+    )
 
     # Train base
     base_flow = BaseFlow(spline_inn(cfg.general.data_dim,
@@ -65,7 +72,7 @@ def main(cfg: DictConfig) -> None:
                                     context_features=cfg.general.ncond
                                     ),
                          StandardNormal([cfg.general.data_dim])
-                        )
+                         )
     if pathlib.Path(cfg.base_dist.load_path).is_file():
         print(f"Loading base from model: {cfg.base_dist.load_path}")
         base_flow.load_state_dict(torch.load(cfg.base_dist.load_path, map_location=device))
@@ -73,7 +80,7 @@ def main(cfg: DictConfig) -> None:
         print("Training base distribution")
         train_base(base_flow, base_data, val_base_data,
                    cfg.base_dist.nepochs, cfg.base_dist.lr, cfg.general.ncond,
-                   outputpath, name='base', device=device)
+                   outputpath, name='base', device=device, gclip=cfg.base_dist.gclip)
 
     set_trainable(base_flow, False)
 
@@ -87,9 +94,10 @@ def main(cfg: DictConfig) -> None:
         plot_data(sampled := base_flow.sample(nsamples, context=right_cond).squeeze(),
                   outputpath / f'base_density_{tensor_to_str(right_cond)}.png')
         bd_samples.append(sampled)
-    df = dump_to_df(*bd_samples,col_names=[f'cond_{ev:.2f}_{coord}'.replace('.','_') for ev in evals for coord in ['x', 'y']])
+    df = dump_to_df(*bd_samples,
+                    col_names=[f'cond_{ev:.2f}_{coord}'.replace('.', '_') for ev in evals for coord in ['x', 'y']])
     df.to_hdf(outputpath / 'eval_data.h5', f'base_dist')
-        
+
     # Train Flow4Flow
     n_cond = get_flow4flow_ncond(cfg.top_transformer.flow4flow) * cfg.general.ncond
     f4flow = get_flow4flow(cfg.top_transformer.flow4flow,
@@ -113,7 +121,7 @@ def main(cfg: DictConfig) -> None:
         print("Training Flow4Flow model")
         train_f4f(f4flow, base_data, val_base_data,
                   cfg.top_transformer.nepochs, cfg.top_transformer.lr, cfg.general.ncond,
-                  outputpath, name='f4f', device=device)
+                  outputpath, name='f4f', device=device, gclip=cfg.top_transformer.gclip)
 
     with torch.no_grad():
         f4flow.to(device)
