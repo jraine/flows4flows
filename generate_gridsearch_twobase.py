@@ -29,38 +29,51 @@ def main():
     ###options to test
 
     left_data         = [
-                        # "'ring'",
-                        #  "'concentricrings'",
-                        #  "'fourcircles'",
+                        #  "'ring'",
+                         "'concentricrings'",
+                         "'fourcircles'",
                          "'checkerboard'",
-                         # "'spirals'"
+                        #  "'spirals'",
+                         "'star'",
+                        #  "'eightstar'",
                          ]
     right_data        = [
-                        # "'ring'",
+                        #  "'ring'",
                         #  "'concentricrings'",
                         #  "'fourcircles'",
                          "'checkerboard'",
-                        #  "'spirals'"
+                         "'spirals'",
+                         "'star'",
+                         "'eightstar'",
                          ]
     f4f_dir           = [
                          "'alternate'",
-                         "'forward'",
+                         # "'forward'",
                          "'inverse'",
                         #  "'both'",
                         #  "'iterate'"
                         ]
 
+    penalty = ["None"]
+    penalty_weight = ["0"]
+    # penalty = ["'l1'", "'l2'"]
+    # penalty_weight = ["1", "10", "100"]
+
     hpo.add_opt('base_dist.left.data',left_data,True)
     hpo.add_opt('base_dist.right.data',right_data,True)
     hpo.add_opt('top_transformer.direction',f4f_dir,True)
+    hpo.add_opt('top_transformer.penalty',penalty,True)
+    hpo.add_opt('top_transformer.penalty_weight',penalty_weight,True)
 
     hpo.add_script_line('export XDG_RUNTIME_DIR=""')
     hpo.add_script_line('module load GCC/9.3.0 Singularity/3.7.3-Go-1.14',lastline = True)
 
+    name = hpo.get_name_string(nrandom=args.nrandom)
+
     cmd = '\nsrun singularity exec --nv'
     if args.singularity_mounts is not None:
         cmd += f' -B {args.singularity_mounts}'
-    cmd += f' {args.singularity_instance}\\\n\tpython3 {runfile}\\\n\t\toutput.save_dir={args.outputdir}\\\n\t\toutput.name={args.outputname}_${{SLURM_ARRAY_TASK_ID}}\\\n\t\t'
+    cmd += f' {args.singularity_instance}\\\n\tpython3 {runfile}\\\n\t\toutput.save_dir={args.outputdir}\\\n\t\toutput.name={args.outputname}_${{SLURM_ARRAY_TASK_ID}}_{name}\\\n\t\t'
 
     pathlib.Path(logdir).mkdir(parents=True, exist_ok=True)
     pathlib.Path(args.sbatch_output).parent.mkdir(parents=True, exist_ok=True)

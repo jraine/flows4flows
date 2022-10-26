@@ -32,21 +32,30 @@ def main():
             "'concentricrings'",
             "'fourcircles'",
             "'checkerboard'",
-            "'spirals'"]
+            "'spirals'",
+            "'star'",
+            ]
 
-    cond = ["'radial'"]
+    cond = ["'radial'",
+            "'rotation'"]
     # cond = [ "'rotation'"]
+
+    flow4flow = ["'delta'",
+                 "'concat'"]
 
     hpo.add_opt('base_dist.base_data', data, True)
     hpo.add_opt('base_dist.condition', cond, True)
+    hpo.add_opt('top_transformer.flow4flow', flow4flow, True)
 
     hpo.add_script_line('export XDG_RUNTIME_DIR=""')
     hpo.add_script_line('module load GCC/9.3.0 Singularity/3.7.3-Go-1.14', lastline=True)
 
+    name = hpo.get_name_string(nrandom=args.nrandom)
+
     cmd = '\nsrun singularity exec --nv'
     if args.singularity_mounts is not None:
         cmd += f' -B {args.singularity_mounts}'
-    cmd += f' {args.singularity_instance}\\\n\tpython3 {runfile}\\\n\t\toutput.save_dir={args.outputdir}\\\n\t\toutput.name={args.outputname}_${{SLURM_ARRAY_TASK_ID}}\\\n\t\t'
+    cmd += f' {args.singularity_instance}\\\n\tpython3 {runfile}\\\n\t\toutput.save_dir={args.outputdir}\\\n\t\toutput.name={args.outputname}_${{SLURM_ARRAY_TASK_ID}}_{name}\\\n\t\t'
 
     pathlib.Path(logdir).mkdir(parents=True, exist_ok=True)
     pathlib.Path(args.sbatch_output).parent.mkdir(parents=True, exist_ok=True)

@@ -20,6 +20,7 @@ class ConditionalPlaneDataset(PlaneDataset):
     def get_tuple(self):
         return self.data, self.conditions
 
+
 class ConditionalWrapper(ConditionalPlaneDataset):
 
     def __init__(self, base_dataset):
@@ -45,17 +46,16 @@ class ConditionalWrapper(ConditionalPlaneDataset):
         #     condition = torch.cat([self.base_dataset.conditions, condition], axis=-1)
 
         self.data = data
-        self.conditions = condition.reshape(self.data.shape[0],-1)
-    
+        self.conditions = condition.reshape(self.data.shape[0], -1)
+
     def get_default_eval(self, n_test):
         """Set the data to some default condition and return a set of default points."""
         return torch.linspace(0, 1, n_test)
-    
 
 
 class RotatedData(ConditionalWrapper):
 
-    def __init__(self, base_dataset, max_angle=360):
+    def __init__(self, base_dataset, max_angle=45):
         self.max_angle = max_angle
         super(RotatedData, self).__init__(base_dataset)
 
@@ -85,14 +85,15 @@ class RotatedData(ConditionalWrapper):
 
     def get_default_eval(self, n_test):
         """Set the data to some default condition and return a set of default points."""
-        return torch.linspace(0, 1, n_test+1)[1:]
-
+        self._create_data(angles=0)
+        return torch.linspace(0, 1, n_test + 1)[1:]
 
 
 class RadialScale(ConditionalWrapper):
 
-    def __init__(self, base_dataset, max_scale=1):
+    def __init__(self, base_dataset, max_scale=1, minscale=0.5):
         self.max_scale = max_scale
+        self.min_scale = minscale
         super(RadialScale, self).__init__(base_dataset)
 
     def _get_conditional(self, scale=None):
@@ -100,14 +101,15 @@ class RadialScale(ConditionalWrapper):
         if scale is None:
             # When sampling in 2D there is a volume correction for the radius which is accounted for with the square
             # root
-            scale = np.random.rand(self.num_points).reshape(-1, 1) ** 0.5 * self.max_scale
+            scale = np.random.rand(self.num_points).reshape(-1, 1) ** 0.5 * (
+                        self.max_scale - self.min_scale) + self.min_scale
         cond_data = self.base_dataset.data * scale
         return cond_data, scale
 
     def get_default_eval(self, n_test):
         """Set the data to some default condition and return a set of default points."""
         self._create_data(scale=1)
-        return torch.linspace(0, self.max_scale, n_test+1)[1:]
+        return torch.linspace(self.min_scale, self.max_scale, n_test + 1)[1:]
 
 
 class ElipseShift(ConditionalWrapper):
@@ -124,6 +126,9 @@ class ElipseShift(ConditionalWrapper):
             shift = shift * np.ones((self.num_points, 1))
         return shift
 
+    def shift_to_condition(self, shift):
+        return shift / torch.concat((self.max_shift_x, self.max_shift_y), 0).view(1, 2)
+
     def _get_conditional(self, shift_x=None, shift_y=None):
         # write angle in degrees
         shift_x = self.get_shift(shift_x, self.max_shift_x)
@@ -131,3 +136,10 @@ class ElipseShift(ConditionalWrapper):
         shift = np.concatenate((shift_x, shift_y), 1)
         cond_data = self.base_dataset.data * shift
         return cond_data, shift
+
+    def get_default_eval(self, n_test):
+        """Set the data to some default condition and return a set of default points."""
+        raise NotImplementedError('This has not been set up for this class.')
+        # TODO how to choose a direction in the order?
+        self._create_data(scale=1)
+        return torch.linspace(0, self.max_scale, n_test + 1)[1:]
