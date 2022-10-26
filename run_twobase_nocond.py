@@ -41,7 +41,7 @@ def train_f4f_inverse(*args, **kwargs):
 def train_f4f_iterate(model, train_dataset, val_dataset, batch_size,
                       n_epochs, learning_rate, ncond, path, name,
                       iteration_steps=1,
-                      rand_perm_target=False, inverse=False, loss_fig=True, device='cpu'):
+                      rand_perm_target=False, inverse=False, loss_fig=True, device='cpu', gclip=None):
     loss_fwd = torch.zeros(n_epochs)
     val_loss_fwd = torch.zeros(n_epochs)
     loss_inv = torch.zeros(n_epochs)
@@ -60,7 +60,7 @@ def train_f4f_iterate(model, train_dataset, val_dataset, batch_size,
                                              DataLoader(dataset=val_data, batch_size=1000), iteration_steps,
                                              learning_rate, ncond, path, f'{name}_{ddir}_step_{step}',
                                              rand_perm_target=rand_perm_target, inverse=inv,
-                                             loss_fig=False, device=device)
+                                             loss_fig=False, device=device, gclip=gclip)
             loss[step * iteration_steps:(step + 1) * iteration_steps] = loss_step
             val_loss[step * iteration_steps:(step + 1) * iteration_steps] = val_loss_step
 
@@ -176,7 +176,7 @@ def main(cfg: DictConfig) -> None:
         train_f4f_iterate(f4flow, train_data, val_data, cfg.top_transformer.batch_size,
                           cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
                           outputpath, iteration_steps=iteration_steps,
-                          name='f4f', device=device)
+                          name='f4f', device=device, gclip=cfg.top_transformer.gclip)
 
     elif (direction == 'alternate'):
         print("Training Flow4Flow model alternating every batch")
@@ -184,7 +184,7 @@ def main(cfg: DictConfig) -> None:
                                                shuffle=True),
                             DataLoader(val_data.paired(), batch_size=cfg.top_transformer.batch_size),
                             cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
-                            outputpath, name='f4f', device=device) 
+                            outputpath, name='f4f', device=device, gclip=cfg.top_transformer.gclip) 
 
     else:
         if (direction == 'forward' or direction == 'both'):
@@ -193,7 +193,7 @@ def main(cfg: DictConfig) -> None:
                               DataLoader(train_data.left(), batch_size=cfg.top_transformer.batch_size, shuffle=True),
                               DataLoader(val_data.left(), batch_size=1000),
                               cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
-                              outputpath, name='f4f_fwd', device=device)
+                              outputpath, name='f4f_fwd', device=device, gclip=cfg.top_transformer.gclip)
 
         if (direction == 'inverse' or direction == 'both'):
             print("Training Flow4Flow model backwards")
@@ -201,7 +201,7 @@ def main(cfg: DictConfig) -> None:
                               DataLoader(train_data.right(), batch_size=cfg.top_transformer.batch_size, shuffle=True),
                               DataLoader(val_data.right(), batch_size=1000),
                               cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
-                              outputpath, name='f4f_inv', device=device)
+                              outputpath, name='f4f_inv', device=device, gclip=cfg.top_transformer.gclip)
 
     with torch.no_grad():
         f4flow.to(device)
