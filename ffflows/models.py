@@ -111,6 +111,27 @@ class FlowForFlow(abc.ABC, flows.Flow):
                                                                   inverse=inverse)
         return outputs, logabsdet
 
+    def batch_transform(self, inputs, input_context=None, target_context=None, inverse=False, batch_size=None):
+        if batch_size is None:
+            return self.transform(inputs, input_context, target_context, inverse)
+        else:
+            lendata = len(inputs)
+            steps = len(inputs) // batch_size
+            outputs = torch.zeros_like(inputs)
+            logabsdet = torch.zeros(len(inputs))
+            if target_context is not None and (len(target_context) != len(input_context)):
+                target_context = torch.ones_like(input_context)*target_context
+            for step in range(steps):
+                b_inputs = inputs[step*batch_size:(step+1)*batch_size]
+                b_incon = input_context[step*batch_size:(step+1)*batch_size] if input_context is not None else None
+                b_tarcon = target_context[step*batch_size:(step+1)*batch_size] if target_context is not None else None
+                outputs[step*batch_size:(step+1)*batch_size],\
+                    logabsdet[step*batch_size:(step+1)*batch_size] = self.transform(b_inputs,
+                                                                                    b_incon,
+                                                                                    b_tarcon,
+                                                                                    inverse)
+            return outputs, logabsdet
+
     def bd_log_prob(self, noise, input_context=None, target_context=None, inverse=False):
         '''
         Base density log probabilites.

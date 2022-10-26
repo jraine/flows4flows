@@ -125,7 +125,7 @@ def main(cfg: DictConfig) -> None:
             left_data, left_cond, right_cond = [d.to(device) \
                                                 for d in ConditionalDataToTarget(test_data.get_tuple(), con).paired()]
             # Transform the data
-            transformed, _ = f4flow.transform(left_data, left_cond, right_cond)
+            transformed, _ = f4flow.batch_transform(left_data, left_cond, right_cond, batch_size=1000)
             # Plot the output densities
             plot_data(transformed, outputpath / f'flow_for_flow_{tensor_to_str(con)}.png')
             # Get the transformation that results from going via the base distributions
