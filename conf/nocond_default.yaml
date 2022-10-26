@@ -20,23 +20,23 @@ base_dist:
     nnodes: 128
     nbins: 8
     activation: relu
-    coupling: True
+    coupling: False
     coupling_width: 32
     coupling_depth: 2
 
   right:
-    data: ConcentricRings
+    data: Checkerboard
     load_path: None
     batch_size: 128
     lr: 1e-4
-    nepochs: 1
+    nepochs: 10
     gclip: 5
     nstack: 4
     nblocks: 2
     nnodes: 128
     nbins: 8
     activation: relu
-    coupling: True
+    coupling: False
     coupling_width: 32
     coupling_depth: 2
 
@@ -44,7 +44,7 @@ top_transformer:
   load_path: None
   batch_size: 128
   lr: 1e-4
-  nepochs: 4
+  nepochs: 24
   flow4flow: discretebase
   direction: alternate
   iteration_steps: 5
@@ -52,7 +52,7 @@ top_transformer:
   nstack: 4
   nblocks: 2
   nnodes: 128
-  nbins: 10
+  nbins: 8
   activation: leaky_relu
   coupling: False
   coupling_width: 32

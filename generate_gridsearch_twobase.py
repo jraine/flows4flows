@@ -34,7 +34,7 @@ def main():
                          "'fourcircles'",
                          "'checkerboard'",
                         #  "'spirals'",
-                        #  "'star'",
+                         "'star'",
                         #  "'eightstar'",
                          ]
     right_data        = [
