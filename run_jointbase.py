@@ -73,7 +73,7 @@ def main(cfg: DictConfig) -> None:
         print("Training base distribution")
         train_base(base_flow, base_data, val_base_data,
                    cfg.base_dist.nepochs, cfg.base_dist.lr, cfg.general.ncond,
-                   outputpath, name='base', device=device)
+                   outputpath, name='base', device=device, gclip=cfg.base_dist.gclip)
 
     set_trainable(base_flow, False)
 
@@ -113,7 +113,7 @@ def main(cfg: DictConfig) -> None:
         print("Training Flow4Flow model")
         train_f4f(f4flow, base_data, val_base_data,
                   cfg.top_transformer.nepochs, cfg.top_transformer.lr, cfg.general.ncond,
-                  outputpath, name='f4f', device=device)
+                  outputpath, name='f4f', device=device, gclip=cfg.top_transformer.gclip)
 
     f4flow.to(device)
     test_data = get_data(n_points)

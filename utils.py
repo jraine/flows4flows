@@ -2,6 +2,7 @@ import pathlib
 
 import torch
 from torch.nn import functional as F
+from torch.nn.utils import clip_grad_norm_
 
 from ffflows import distance_penalties
 from ffflows.distance_penalties import AnnealedPenalty
@@ -136,7 +137,7 @@ def spline_inn(inp_dim, nodes=128, num_blocks=2, num_stack=3, tail_bound=3.5, ta
 
 
 def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, name, rand_perm_target=False,
-          inverse=False, loss_fig=True, device='cpu'):
+          inverse=False, loss_fig=True, device='cpu', gclip=None):
     save_path = pathlib.Path(path / name)
     save_path.mkdir(parents=True, exist_ok=True)
 
@@ -169,6 +170,8 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
                                       inverse=inverse).mean()
 
             logprob.backward()
+            if gclip not in ['None', None]:
+                clip_grad_norm_(model.parameters(), gclip)
             optimizer.step()
             scheduler.step()
             t_loss.append(logprob.item())

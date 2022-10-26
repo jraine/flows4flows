@@ -17,9 +17,9 @@ base_dist:
   nepochs: 4
   gclip: 5
   nstack: 4
-  nblocks: 4
-  nnodes: 20
-  nbins: 4
+  nblocks: 2
+  nnodes: 128
+  nbins: 8
   activation: relu
   coupling: True
   coupling_width: 32
@@ -33,9 +33,9 @@ top_transformer:
   flow4flow: delta
   gclip: 5
   nstack: 4
-  nblocks: 4
-  nnodes: 20
-  nbins: 4
+  nblocks: 2
+  nnodes: 128
+  nbins: 8
   activation: relu
   coupling: True
   coupling_width: 32
