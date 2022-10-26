@@ -1,4 +1,7 @@
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 # import pandas as pd
 from nflows.utils import tensor2numpy
 import numpy as np

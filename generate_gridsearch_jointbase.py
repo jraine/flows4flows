@@ -32,7 +32,9 @@ def main():
             "'concentricrings'",
             "'fourcircles'",
             "'checkerboard'",
-            "'spirals'"]
+            "'spirals'",
+            "'star'",
+            ]
 
     cond = ["'radial'",
             "'rotation'"]

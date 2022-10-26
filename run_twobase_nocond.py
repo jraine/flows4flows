@@ -13,7 +13,8 @@ from nflows import transforms
 from nflows.distributions import StandardNormal
 from nflows.flows import Flow
 
-from utils import get_activation, get_data, get_flow4flow, train, train_batch_iterate, spline_inn, set_penalty, dump_to_df
+from utils import get_activation, get_data, get_flow4flow, train, train_batch_iterate, spline_inn, set_penalty, \
+    dump_to_df
 import matplotlib.pyplot as plt
 from plot import plot_training, plot_data, plot_arrays
 
@@ -40,7 +41,7 @@ def train_f4f_inverse(*args, **kwargs):
 def train_f4f_iterate(model, train_dataset, val_dataset, batch_size,
                       n_epochs, learning_rate, ncond, path, name,
                       iteration_steps=1,
-                      rand_perm_target=False, inverse=False, loss_fig=True, device='cpu'):
+                      rand_perm_target=False, inverse=False, loss_fig=True, device='cpu', gclip=None):
     loss_fwd = torch.zeros(n_epochs)
     val_loss_fwd = torch.zeros(n_epochs)
     loss_inv = torch.zeros(n_epochs)
@@ -59,7 +60,7 @@ def train_f4f_iterate(model, train_dataset, val_dataset, batch_size,
                                              DataLoader(dataset=val_data, batch_size=1000), iteration_steps,
                                              learning_rate, ncond, path, f'{name}_{ddir}_step_{step}',
                                              rand_perm_target=rand_perm_target, inverse=inv,
-                                             loss_fig=False, device=device)
+                                             loss_fig=False, device=device, gclip=gclip)
             loss[step * iteration_steps:(step + 1) * iteration_steps] = loss_step
             val_loss[step * iteration_steps:(step + 1) * iteration_steps] = val_loss_step
 
@@ -89,13 +90,20 @@ def main(cfg: DictConfig) -> None:
 
     # Get training data
     n_points = int(cfg.general.n_points)
-    base_data_l, base_data_r = [DataLoader(dataset=get_data(bd_conf.data, n_points), batch_size=bd_conf.batch_size, shuffle=True) \
+    base_data_l, base_data_r = [DataLoader(dataset=get_data(bd_conf.data, n_points),
+                                           batch_size=bd_conf.batch_size,
+                                           shuffle=True) \
                                 for bd_conf in [cfg.base_dist.left, cfg.base_dist.right]]
-    val_base_data_l, val_base_data_r = [DataLoader(dataset=get_data(bd_conf.data, n_points), batch_size=1000) \
+    val_base_data_l, val_base_data_r = [DataLoader(dataset=get_data(bd_conf.data, n_points),
+                                                   batch_size=1000,
+                                                   shuffle=True) \
                                         for bd_conf in [cfg.base_dist.left, cfg.base_dist.right]]
 
     ncond_base = None if cfg.general.ncond == 0 else cfg.general.ncond
     ncond_f4f = ncond_base * 2 if ncond_base is not None else None
+
+    plot_data(get_data(cfg.base_dist.left.data, n_points).data,
+              outputpath / f'base_density_left_data.png')
 
     # Train base1
     base_flow_l, base_flow_r = [BaseFlow(spline_inn(cfg.general.data_dim,
@@ -124,7 +132,7 @@ def main(cfg: DictConfig) -> None:
             print(f"Training base_{label} distribution")
             train_base(base_flow, base_data, val_base_data,
                        bd_conf.nepochs, bd_conf.lr, ncond_base,
-                       outputpath, name=f'base_{label}', device=device)
+                       outputpath, name=f'base_{label}', device=device, gclip=cfg.base_dist.left.gclip)
 
         set_trainable(base_flow, False)
 
@@ -168,29 +176,32 @@ def main(cfg: DictConfig) -> None:
         train_f4f_iterate(f4flow, train_data, val_data, cfg.top_transformer.batch_size,
                           cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
                           outputpath, iteration_steps=iteration_steps,
-                          name='f4f', device=device)
+                          name='f4f', device=device, gclip=cfg.top_transformer.gclip)
 
     elif (direction == 'alternate'):
         print("Training Flow4Flow model alternating every batch")
-        train_batch_iterate(f4flow, DataLoader(train_data.paired(), batch_size=cfg.top_transformer.batch_size, shuffle=True),
+        train_batch_iterate(f4flow, DataLoader(train_data.paired(), batch_size=cfg.top_transformer.batch_size,
+                                               shuffle=True),
                             DataLoader(val_data.paired(), batch_size=cfg.top_transformer.batch_size),
                             cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
-                            outputpath, name='f4f', device=device)
+                            outputpath, name='f4f', device=device, gclip=cfg.top_transformer.gclip) 
 
     else:
         if (direction == 'forward' or direction == 'both'):
             print("Training Flow4Flow model forwards")
-            train_f4f_forward(f4flow, DataLoader(train_data.left(), batch_size=cfg.top_transformer.batch_size, shuffle=True),
+            train_f4f_forward(f4flow,
+                              DataLoader(train_data.left(), batch_size=cfg.top_transformer.batch_size, shuffle=True),
                               DataLoader(val_data.left(), batch_size=1000),
                               cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
-                              outputpath, name='f4f_fwd', device=device)
+                              outputpath, name='f4f_fwd', device=device, gclip=cfg.top_transformer.gclip)
 
         if (direction == 'inverse' or direction == 'both'):
             print("Training Flow4Flow model backwards")
-            train_f4f_inverse(f4flow, DataLoader(train_data.right(), batch_size=cfg.top_transformer.batch_size, shuffle=True),
+            train_f4f_inverse(f4flow,
+                              DataLoader(train_data.right(), batch_size=cfg.top_transformer.batch_size, shuffle=True),
                               DataLoader(val_data.right(), batch_size=1000),
                               cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
-                              outputpath, name='f4f_inv', device=device)
+                              outputpath, name='f4f_inv', device=device, gclip=cfg.top_transformer.gclip)
 
     with torch.no_grad():
         f4flow.to(device)
