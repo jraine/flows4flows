@@ -124,34 +124,35 @@ def main(cfg: DictConfig) -> None:
                   cfg.top_transformer.nepochs, cfg.top_transformer.lr, cfg.general.ncond,
                   outputpath, name='f4f', device=device, gclip=cfg.top_transformer.gclip)
 
-    f4flow.to(device)
-    test_data = get_data(n_points)
+    with torch.no_grad():
+        f4flow.to(device)
+        test_data = get_data(n_points)
 
-    test_points = test_data.get_default_eval(6)
-    for con in test_points:
-        # Handle the broadcasting
-        left_data, left_cond, right_cond = [d.to(device) \
-                                            for d in ConditionalDataToTarget(test_data.get_tuple(), con).paired()]
-        # Transform the data
-        transformed, _ = f4flow.transform(left_data, left_cond, right_cond)
-        # Plot the output densities
-        plot_data(transformed, outputpath / f'flow_for_flow_{tensor_to_str(con)}.png')
-        # Get the transformation that results from going via the base distributions
-        left_bd_enc = f4flow.base_flow_left.transform_to_noise(left_data, left_cond)
-        right_bd_dec, _ = f4flow.base_flow_right._transform.inverse(left_bd_enc, right_cond)
-        # Plot how each point is shifted
-        plot_arrays({
-            'Input Data': left_data,
-            'FFF': transformed,
-            'BdTransfer': right_bd_dec
-        }, outputpath, f'{con.item():.2f}')
+        test_points = test_data.get_default_eval(6)
+        for con in test_points:
+            # Handle the broadcasting
+            left_data, left_cond, right_cond = [d.to(device) \
+                                                for d in ConditionalDataToTarget(test_data.get_tuple(), con).paired()]
+            # Transform the data
+            transformed, _ = f4flow.transform(left_data, left_cond, right_cond)
+            # Plot the output densities
+            plot_data(transformed, outputpath / f'flow_for_flow_{tensor_to_str(con)}.png')
+            # Get the transformation that results from going via the base distributions
+            left_bd_enc = f4flow.base_flow_left.transform_to_noise(left_data, left_cond)
+            right_bd_dec, _ = f4flow.base_flow_right._transform.inverse(left_bd_enc, right_cond)
+            # Plot how each point is shifted
+            plot_arrays({
+                'Input Data': left_data,
+                'FFF': transformed,
+                'BdTransfer': right_bd_dec
+            }, outputpath, f'{con.item():.2f}')
 
-        ##dump data
-        df = dump_to_df(left_data, left_cond, right_cond, transformed, left_bd_enc, right_bd_dec,
-                        col_names=['input_x', 'input_y', 'left_cond', 'right_cond',
-                                   'transformed_x', 'transformed_y', 'left_enc_x', 'left_enc_y',
-                                   'base_transfer_x', 'base_transfer_y'])
-        df.to_hdf(outputpath / 'eval_data.h5', f'f4f_{con:.2f}'.replace('.', '_'))
+            ##dump data
+            df = dump_to_df(left_data, left_cond, right_cond, transformed, left_bd_enc, right_bd_dec,
+                            col_names=['input_x','input_y','left_cond','right_cond',
+                                    'transformed_x','transformed_y','left_enc_x','left_enc_y',
+                                    'base_transfer_x','base_transfer_y'])
+            df.to_hdf(outputpath / 'eval_data.h5', f'f4f_{con:.2f}'.replace('.','_'))
 
 
 if __name__ == "__main__":

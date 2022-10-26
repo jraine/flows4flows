@@ -56,7 +56,7 @@ def train_f4f_iterate(model, train_dataset, val_dataset, batch_size,
                                                                    ['fwd', 'inv'],
                                                                    [True, False]):
             print(("Forward" if ddir == 'fwd' else "Inverse"))
-            loss_step, val_loss_step = train(model, DataLoader(dataset=train_data, batch_size=batch_size),
+            loss_step, val_loss_step = train(model, DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True),
                                              DataLoader(dataset=val_data, batch_size=1000), iteration_steps,
                                              learning_rate, ncond, path, f'{name}_{ddir}_step_{step}',
                                              rand_perm_target=rand_perm_target, inverse=inv,
@@ -203,43 +203,42 @@ def main(cfg: DictConfig) -> None:
                               cfg.top_transformer.nepochs, cfg.top_transformer.lr, ncond_f4f,
                               outputpath, name='f4f_inv', device=device)
 
-    f4flow.to(device)
-    test_data = UnconditionalDataToData(get_data(cfg.base_dist.left.data, n_points),
-                                        get_data(cfg.base_dist.right.data, n_points))
+    with torch.no_grad():
+        f4flow.to(device)
+        test_data = UnconditionalDataToData(get_data(cfg.base_dist.left.data, n_points),
+                                            get_data(cfg.base_dist.right.data, n_points))
 
-    left_data = test_data.left().data.to(device)
-    right_data = test_data.right().data.to(device)
+        left_data = test_data.left().data.to(device)
+        right_data = test_data.right().data.to(device)
 
-    plot_data(left_data, outputpath / f'flow_for_flow_left_input.png')
-    plot_data(right_data, outputpath / f'flow_for_flow_right_input.png')
-    left_to_right, _ = f4flow.transform(left_data, inverse=False)
-    plot_data(left_to_right, outputpath / f'left_to_right_transform.png')
-    right_to_left, _ = f4flow.transform(right_data, inverse=True)
-    plot_data(right_to_left, outputpath / f'right_to_left_transform.png')
-    sample_left = f4flow.base_flow_left.sample(n_points)
-    plot_data(sample_left, outputpath / f'f4f_left_sample.png')
-    sample_to_right, _ = f4flow.transform(sample_left, inverse=False)
-    plot_data(sample_to_right, outputpath / f'f4f_sample_left_transform_right.png')
-    sample_right = f4flow.base_flow_right.sample(n_points)
-    plot_data(sample_right, outputpath / f'f4f_right_sample.png')
-    sample_to_left, _ = f4flow.transform(sample_right, inverse=True)
-    plot_data(sample_to_left, outputpath / f'f4f_sample_right_transform_left.png')
+        plot_data(left_data, outputpath / f'flow_for_flow_left_input.png')
+        plot_data(right_data, outputpath / f'flow_for_flow_right_input.png')
+        left_to_right, _ = f4flow.transform(left_data, inverse=False)
+        plot_data(left_to_right, outputpath / f'left_to_right_transform.png')
+        right_to_left, _ = f4flow.transform(right_data, inverse=True)
+        plot_data(right_to_left, outputpath / f'right_to_left_transform.png')
+        sample_left = f4flow.base_flow_left.sample(n_points)
+        plot_data(sample_left, outputpath / f'f4f_left_sample.png')
+        sample_to_right, _ = f4flow.transform(sample_left, inverse=False)
+        plot_data(sample_to_right, outputpath / f'f4f_sample_left_transform_right.png')
+        sample_right = f4flow.base_flow_right.sample(n_points)
+        plot_data(sample_right, outputpath / f'f4f_right_sample.png')
+        sample_to_left, _ = f4flow.transform(sample_right, inverse=True)
+        plot_data(sample_to_left, outputpath / f'f4f_sample_right_transform_left.png')
 
-    left_bd_enc = f4flow.base_flow_left.transform_to_noise(left_data)
-    right_bd_dec, _ = f4flow.base_flow_right._transform.inverse(left_bd_enc)
-    plot_arrays({
-        'Input Data': left_data,
-        'FFF': left_to_right,
-        'BdTransfer': right_bd_dec
-    }, outputpath, 'left_to_right.png')
+        left_bd_enc = f4flow.base_flow_left.transform_to_noise(left_data)
+        right_bd_dec, _ = f4flow.base_flow_right._transform.inverse(left_bd_enc)
+        plot_arrays({
+            'Input Data': left_data,
+            'FFF': left_to_right,
+            'BdTransfer': right_bd_dec
+        }, outputpath, 'left_to_right.png')
 
-    df = dump_to_df(left_data, right_data, left_to_right, right_to_left,
-                    sample_to_right, sample_to_left, left_bd_enc, right_bd_dec,
-                    col_names=[f'{name}_{coord}' for name in
-                               ['left_data', 'right_data', 'left_to_right', 'right_to_left',
-                                'sample_to_right', 'sample_to_left', 'left_enc', 'base_transfer'] for coord in
-                               ['x', 'y']])
-    df.to_hdf(outputpath / 'eval_data.h5', 'f4f')
+        df = dump_to_df(left_data, right_data, left_to_right, right_to_left,
+                        sample_to_right, sample_to_left, left_bd_enc, right_bd_dec,
+                        col_names=[f'{name}_{coord}' for name in ['left_data','right_data','left_to_right','right_to_left',
+                                'sample_to_right','sample_to_left','left_enc', 'base_transfer'] for coord in ['x','y'] ])
+        df.to_hdf(outputpath / 'eval_data.h5', 'f4f')
 
 
 if __name__ == "__main__":
