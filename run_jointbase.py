@@ -58,8 +58,7 @@ def main(cfg: DictConfig) -> None:
     )
     val_base_data = DataLoader(
         dataset=get_data(n_points),
-        batch_size=1000,
-        shuffle=True
+        batch_size=1000
     )
 
     # Train base
