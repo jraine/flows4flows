@@ -10,7 +10,6 @@ general:
 base_dist:
   condition: radial
   base_data: spirals
-  ncond: 1
   load_path: None
   batch_size: 128
   lr: 1e-4
@@ -21,7 +20,7 @@ base_dist:
   nnodes: 128
   nbins: 8
   activation: relu
-  coupling: True
+  coupling: False
   coupling_width: 32
   coupling_depth: 2
 
@@ -37,7 +36,7 @@ top_transformer:
   nnodes: 128
   nbins: 8
   activation: relu
-  coupling: True
+  coupling: False
   coupling_width: 32
   coupling_depth: 2
   penalty: None

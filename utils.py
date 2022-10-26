@@ -206,7 +206,7 @@ def train(model, train_data, val_data, n_epochs, learning_rate, ncond, path, nam
 
 
 def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, ncond, path, name, rand_perm_target=False,
-                        inverse=False, loss_fig=True, device='cpu'):
+                        inverse=False, loss_fig=True, device='cpu', gclip=None):
     # try:
     #     train_data.paired() and val_data.paired()
     # except(AttributeError, TypeError):
@@ -250,6 +250,8 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
             logprob = -model.log_prob(inputs, input_context=context_l, target_context=context_r, inverse=inv).mean()
 
             logprob.backward()
+            if gclip not in ['None', None]:
+                clip_grad_norm_(model.parameters(), gclip)
             optimizer.step()
             scheduler.step()
             t_loss.append(logprob.item())
