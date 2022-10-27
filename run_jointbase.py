@@ -1,6 +1,8 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import pathlib
+import glob
+import os
 from ffflows.models import BaseFlow
 from ffflows.utils import set_trainable
 
@@ -29,7 +31,7 @@ def train_f4f(*args, **kwargs):
     return train(*args, **kwargs, rand_perm_target=True)
 
 
-@hydra.main(version_base=None, config_path="conf/", config_name="cond_jointbase_default")
+@hydra.main(version_base=None, config_path="conf/", config_name="defaults_jointcond")
 def main(cfg: DictConfig) -> None:
     print("Configuring job with following options")
     print(OmegaConf.to_yaml(cfg))
@@ -48,9 +50,9 @@ def main(cfg: DictConfig) -> None:
 
     # Get training data
     def get_data(n_points):
-        return get_conditional_data(cfg.base_dist.condition, cfg.base_dist.base_data, n_points)
+        return get_conditional_data(cfg.base_dist.condition, cfg.base_dist.data, n_points)
 
-    n_points = int(cfg.general.n_points)
+    n_points = int(cfg.general.npoints)
     base_data = DataLoader(
         dataset=get_data(n_points),
         batch_size=cfg.base_dist.batch_size,
@@ -81,6 +83,11 @@ def main(cfg: DictConfig) -> None:
         train_base(base_flow, base_data, val_base_data,
                    cfg.base_dist.nepochs, cfg.base_dist.lr, cfg.general.ncond,
                    outputpath, name='base', device=device, gclip=cfg.base_dist.gclip)
+        with open(outputpath / f'base' / f'{cfg.base_dist.condition[:3].lower()}_{cfg.base_dist.data.lower()}.yaml', 'w') as file:
+            models =  glob.glob(str((outputpath / f'base' / 'epoch*pt').resolve()))
+            models.sort(key=os.path.getmtime)
+            cfg.base_dist.load_path = models[-1]
+            OmegaConf.save(config=cfg.base_dist, f=file)
 
     set_trainable(base_flow, False)
 

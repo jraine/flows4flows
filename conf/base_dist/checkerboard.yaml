@@ -1,0 +1,14 @@
+data: Checkerboard
+load_path: /srv/beegfs/scratch/groups/rodem/flows4flows/20221027_twobase/base_distributions_2_basedistleftdata_checkerboard_basedistrightdata_fourcircles_toptransformerdirection_alternate_toptransformerpenalty_None_toptransformerpenaltyweight_0/base_left/epoch_31_valloss_3.520.pt
+batch_size: 128
+lr: 1e-4
+nepochs: 32
+gclip: 5
+nstack: 4
+nblocks: 2
+nnodes: 128
+nbins: 8
+activation: relu
+coupling: False
+coupling_width: 32
+coupling_depth: 2

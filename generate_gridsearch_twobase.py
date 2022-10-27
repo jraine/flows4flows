@@ -29,27 +29,27 @@ def main():
     ###options to test
 
     left_data         = [
-                        #  "'ring'",
-                         "'concentricrings'",
-                         "'fourcircles'",
-                         "'checkerboard'",
-                        #  "'spirals'",
-                         "'star'",
-                        #  "'eightstar'",
-                         ]
-    right_data        = [
-                        #  "'ring'",
-                        #  "'concentricrings'",
-                        #  "'fourcircles'",
+                          "'ring'",
+                        "'concentricrings'",
+                        # "'fourcircles'",
                          "'checkerboard'",
                          "'spirals'",
                          "'star'",
                          "'eightstar'",
                          ]
+    right_data        = [
+                        #  "'ring'",
+                        #   "'concentricrings'",
+                          "'fourcircles'",
+                        # "'checkerboard'",
+                        # "'spirals'",
+                        # "'star'",
+                        #  "'eightstar'",
+                         ]
     f4f_dir           = [
                          "'alternate'",
                          # "'forward'",
-                         "'inverse'",
+                        # "'inverse'",
                         #  "'both'",
                         #  "'iterate'"
                         ]
@@ -57,7 +57,7 @@ def main():
     penalty = ["None"]
     penalty_weight = ["0"]
     # penalty = ["'l1'", "'l2'"]
-    # penalty_weight = ["1", "10", "100"]
+    # penalty_weight = ["1", "10"]#, "100"]
 
     hpo.add_opt('base_dist.left.data',left_data,True)
     hpo.add_opt('base_dist.right.data',right_data,True)

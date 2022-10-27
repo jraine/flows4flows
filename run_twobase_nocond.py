@@ -1,6 +1,8 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import pathlib
+import glob
+import os
 import ffflows
 from ffflows import distance_penalties
 from ffflows.models import BaseFlow
@@ -76,7 +78,7 @@ def train_f4f_iterate(model, train_dataset, val_dataset, batch_size,
     model.eval()
 
 
-@hydra.main(version_base=None, config_path="conf/", config_name="nocond_default")
+@hydra.main(version_base=None, config_path="conf/", config_name="defaults_twobase")
 def main(cfg: DictConfig) -> None:
     print("Configuring job with following options")
     print(OmegaConf.to_yaml(cfg))
@@ -89,7 +91,7 @@ def main(cfg: DictConfig) -> None:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Get training data
-    n_points = int(cfg.general.n_points)
+    n_points = int(cfg.general.npoints)
     base_data_l, base_data_r = [DataLoader(dataset=get_data(bd_conf.data, n_points),
                                            batch_size=bd_conf.batch_size,
                                            shuffle=True) \
@@ -133,6 +135,11 @@ def main(cfg: DictConfig) -> None:
             train_base(base_flow, base_data, val_base_data,
                        bd_conf.nepochs, bd_conf.lr, ncond_base,
                        outputpath, name=f'base_{label}', device=device, gclip=cfg.base_dist.left.gclip)
+            with open(outputpath / f'base_{label}' / f'{bd_conf.data.lower()}.yaml', 'w') as file:
+                models =  glob.glob(str((outputpath / f'base_{label}' / 'epoch*pt').resolve()))
+                models.sort(key=os.path.getmtime)
+                bd_conf.load_path = models[-1]
+                OmegaConf.save(config=bd_conf, f=file)
 
         set_trainable(base_flow, False)
 
