@@ -31,7 +31,7 @@ def train_f4f(*args, **kwargs):
     return train(*args, **kwargs, rand_perm_target=True)
 
 
-@hydra.main(version_base=None, config_path="conf/", config_name="cond_jointbase_default")
+@hydra.main(version_base=None, config_path="conf/", config_name="defaults_jointcond")
 def main(cfg: DictConfig) -> None:
     print("Configuring job with following options")
     print(OmegaConf.to_yaml(cfg))
@@ -52,7 +52,7 @@ def main(cfg: DictConfig) -> None:
     def get_data(n_points):
         return get_conditional_data(cfg.base_dist.condition, cfg.base_dist.data, n_points)
 
-    n_points = int(cfg.general.n_points)
+    n_points = int(cfg.general.npoints)
     base_data = DataLoader(
         dataset=get_data(n_points),
         batch_size=cfg.base_dist.batch_size,

@@ -1,4 +1,5 @@
 data: Checkerboard
+condition: Radial
 load_path: None
 batch_size: 128
 lr: 1e-4

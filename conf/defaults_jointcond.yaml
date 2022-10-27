@@ -12,6 +12,7 @@ output:
 general:
   data_dim: 2
   ncond: 1
+  npoints: 1e6
 
 hydra:  
   output_subdir: null  

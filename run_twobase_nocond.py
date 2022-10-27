@@ -78,7 +78,7 @@ def train_f4f_iterate(model, train_dataset, val_dataset, batch_size,
     model.eval()
 
 
-@hydra.main(version_base=None, config_path="conf/", config_name="nocond_default")
+@hydra.main(version_base=None, config_path="conf/", config_name="defaults_twobase")
 def main(cfg: DictConfig) -> None:
     print("Configuring job with following options")
     print(OmegaConf.to_yaml(cfg))
@@ -91,7 +91,7 @@ def main(cfg: DictConfig) -> None:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Get training data
-    n_points = int(cfg.general.n_points)
+    n_points = int(cfg.general.npoints)
     base_data_l, base_data_r = [DataLoader(dataset=get_data(bd_conf.data, n_points),
                                            batch_size=bd_conf.batch_size,
                                            shuffle=True) \
