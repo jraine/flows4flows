@@ -29,22 +29,22 @@ def main():
     ###options to test
 
     left_data         = [
-                          "'ring'",
-                        "'concentricrings'",
-                        # "'fourcircles'",
+                        #   "'ring'",
+                         "'concentricrings'",
+                         "'fourcircles'",
                          "'checkerboard'",
-                         "'spirals'",
+                        #  "'spirals'",
                          "'star'",
-                         "'eightstar'",
+                        #  "'eightstar'",
                          ]
     right_data        = [
-                        #  "'ring'",
-                        #   "'concentricrings'",
-                          "'fourcircles'",
-                        # "'checkerboard'",
-                        # "'spirals'",
-                        # "'star'",
-                        #  "'eightstar'",
+                         "'ring'",
+                        #  "'concentricrings'",
+                        #  "'fourcircles'",
+                         "'checkerboard'",
+                        #  "'spirals'",
+                        #  "'star'",
+                         "'eightstar'",
                          ]
     f4f_dir           = [
                          "'alternate'",
@@ -56,14 +56,16 @@ def main():
 
     penalty = ["None"]
     penalty_weight = ["0"]
-    # penalty = ["'l1'", "'l2'"]
-    # penalty_weight = ["1", "10"]#, "100"]
+    penalty = ["'l1'", "'l2'"]
+    penalty_weight = ["1", "10"]#, "100"]
 
-    hpo.add_opt('base_dist.left.data',left_data,True)
-    hpo.add_opt('base_dist.right.data',right_data,True)
-    hpo.add_opt('top_transformer.direction',f4f_dir,True)
-    hpo.add_opt('top_transformer.penalty',penalty,True)
-    hpo.add_opt('top_transformer.penalty_weight',penalty_weight,True)
+    # hpo.add_opt('base_dist.left.data',left_data,True)
+    # hpo.add_opt('base_dist.right.data',right_data,True)
+    hpo.add_opt('+base_dist@base_dist.left',left_data,True,'left')
+    hpo.add_opt('+base_dist@base_dist.right',right_data,True,'right')
+    hpo.add_opt('top_transformer.direction',f4f_dir,True,'direction')
+    hpo.add_opt('top_transformer.penalty',penalty,True,'penalty')
+    hpo.add_opt('top_transformer.penalty_weight',penalty_weight,True,'penweight')
 
     hpo.add_script_line('export XDG_RUNTIME_DIR=""')
     hpo.add_script_line('module load GCC/9.3.0 Singularity/3.7.3-Go-1.14',lastline = True)

@@ -130,6 +130,7 @@ def main(cfg: DictConfig) -> None:
         if pathlib.Path(bd_conf.load_path).is_file():
             print(f"Loading base_{label} from model: {bd_conf.load_path}")
             base_flow.load_state_dict(torch.load(bd_conf.load_path, map_location=device))
+            train = False if not bd_conf.pretrained else True
         else:
             print(f"Training base_{label} distribution")
             train_base(base_flow, base_data, val_base_data,
