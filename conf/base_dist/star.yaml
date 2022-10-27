@@ -1,5 +1,5 @@
 data: Star
-load_path: None
+load_path: /srv/beegfs/scratch/groups/rodem/flows4flows/20221027_twobase/base1e6_4_basedistleftdata_star_basedistrightdata_fourcircles_toptransformerdirection_alternate_toptransformerpenalty_None_toptransformerpenaltyweight_0/base_left/epoch_31_valloss_1.289.pt
 batch_size: 128
 lr: 1e-4
 nepochs: 32
