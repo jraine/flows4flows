@@ -9,7 +9,7 @@ general:
 
 base_dist:
   condition: radial
-  base_data: spirals
+  data: spirals
   load_path: None
   batch_size: 128
   lr: 1e-4

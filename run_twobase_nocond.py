@@ -1,6 +1,8 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import pathlib
+import glob
+import os
 import ffflows
 from ffflows import distance_penalties
 from ffflows.models import BaseFlow
@@ -133,6 +135,11 @@ def main(cfg: DictConfig) -> None:
             train_base(base_flow, base_data, val_base_data,
                        bd_conf.nepochs, bd_conf.lr, ncond_base,
                        outputpath, name=f'base_{label}', device=device, gclip=cfg.base_dist.left.gclip)
+            with open(outputpath / f'base_{label}' / f'{bd_conf.data.lower()}.yaml', 'w') as file:
+                models =  glob.glob(str((outputpath / f'base_{label}' / 'epoch*pt').resolve()))
+                models.sort(key=os.path.getmtime)
+                bd_conf.load_path = models[-1]
+                OmegaConf.save(config=bd_conf, f=file)
 
         set_trainable(base_flow, False)
 

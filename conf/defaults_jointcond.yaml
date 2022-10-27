@@ -1,0 +1,19 @@
+defaults:  
+  - _self_  
+  - base_dist: defaults
+  - top_transformer: defaults
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled  
+
+output:
+  save_dir: /srv/beegfs/scratch/groups/rodem/flows4flows/
+  name: test
+
+general:
+  data_dim: 2
+  ncond: 1
+
+hydra:  
+  output_subdir: null  
+  run:  
+    dir: .
