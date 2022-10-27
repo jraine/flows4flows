@@ -13,7 +13,7 @@ base_dist:
     load_path: None
     batch_size: 128
     lr: 1e-4
-    nepochs: 10
+    nepochs: 32
     gclip: 5
     nstack: 4
     nblocks: 2
@@ -29,7 +29,7 @@ base_dist:
     load_path: None
     batch_size: 128
     lr: 1e-4
-    nepochs: 10
+    nepochs: 32
     gclip: 5
     nstack: 4
     nblocks: 2
@@ -59,7 +59,7 @@ top_transformer:
   coupling_depth: 2
   penalty: None
   penalty_weight: 1
-  anneal: 1
+  anneal: 0
 
 defaults:
   - _self_
