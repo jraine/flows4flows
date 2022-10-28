@@ -19,8 +19,16 @@ from nflows.utils import tensor2numpy
 import pandas as pd
 import numpy as np
 
-from plot import plot_training
+# from plot import plot_training
 import matplotlib.pyplot as plt
+
+
+def plot_training(training, validation):
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(tensor2numpy(training), label='Training')
+    ax.plot(tensor2numpy(validation), label='Validation')
+    ax.legend()
+    return fig
 
 
 def get_activation(name, *args, **kwargs):
@@ -71,6 +79,15 @@ def get_conditional_data(conditional_type, base_name, num_points, *args, **kwarg
         "ellipse": ElipseShift
     }[conditional_type.lower()]
     return data_wrapper(base_data)
+
+
+def get_cond_numpy_data(condition_type, name, n_points, condition=None):
+    data_obj = get_conditional_data(condition_type, name, n_points)
+    if condition is None:
+        data = data_obj.data
+        return tensor2numpy(data)
+    else:
+        return data_obj._get_conditional(condition)[0]
 
 
 def set_penalty(f4flow, penalty, weight, anneal=False):
@@ -287,6 +304,7 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
     model.eval()
     return train_loss, valid_loss
 
+
 def tensor_to_str(tensor):
     '''Convert a tensor to a string or list of strings. Can be a tensor of shape (), (N,), (N,M), and any other squeezeable shapes'''
 
@@ -305,6 +323,7 @@ def tensor_to_str(tensor):
     else:
         return t_to_s(tensor)
 
+
 def dump_to_df(*args, col_names=None):
     data = [tensor2numpy(d) for d in args]
     if len(np.unique(lens := [len(d) for d in data])) != 1:
@@ -313,11 +332,15 @@ def dump_to_df(*args, col_names=None):
     elif len(np.unique(shapes := [d.shape[:-1] for d in data])) != 1:
         print(f"Arrays not all same shape up until last axis, received f{shapes}")
         exit(51)
-    data = np.concatenate(data,axis=-1)
+    data = np.concatenate(data, axis=-1)
 
     if col_names is not None:
         cols = col_names
     else:
         cols = [f'Array{i}' for i in range(len(args))]
 
-    return pd.DataFrame(data,columns=cols)
+    return pd.DataFrame(data, columns=cols)
+
+
+def get_numpy_data(name, n_points):
+    return tensor2numpy(get_data(name, n_points).data)
