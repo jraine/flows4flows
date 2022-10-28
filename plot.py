@@ -21,9 +21,9 @@ def assign_colors(img, input_data):
     return img[color_ind[0], color_ind[1]]
 
 
-def add_scatter(ax, data, colors):
+def add_scatter(ax, data, colors, s=0.1):
     dt = tensor2numpy(data)
-    ax.scatter(dt[:, 0], dt[:, 1], s=0.1, c=colors / 256, alpha=0.8)
+    ax.scatter(dt[:, 0], dt[:, 1], s=s, c=colors / 256, alpha=0.8)
 
 
 def make_colormap(plt=False):
@@ -57,8 +57,7 @@ def plot_training(training, validation):
     return fig
 
 
-def set_bounds(ax):
-    bound = 4
+def set_bounds(ax, bound=4):
     bounds = [[-bound, bound], [-bound, bound]]
     ax.set_xlim(bounds[0])
     ax.set_ylim(bounds[1])
@@ -112,7 +111,7 @@ def plot_grid(grid, columns, nm, n_points=int(1e4)):
     trgts = np.unique(trgts)
 
     def add_2d_hist(axis, data):
-        axis.hist2d(data[:, 0], data[:, 1])
+        axis.hist2d(data[:, 0], data[:, 1], bins=256)
         set_bounds(axis)
 
     N_inputs = len(inps)

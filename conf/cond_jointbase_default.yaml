@@ -8,8 +8,8 @@ general:
   ncond: 1
 
 base_dist:
-  condition: radial
-  base_data: spirals
+  condition: rotation
+  base_data: fourcircles
   load_path: None
   batch_size: 128
   lr: 1e-4
