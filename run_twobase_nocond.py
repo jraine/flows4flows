@@ -142,8 +142,8 @@ def main(cfg: DictConfig) -> None:
                 OmegaConf.save(config=bd_conf, f=file)
 
         set_trainable(base_flow, False)
-
-        plot_data(base_flow.sample(int(1e5)), outputpath / f'base_density_{label}_samples.png')
+        with torch.no_grad():
+            plot_data(base_flow.sample(int(1e5)), outputpath / f'base_density_{label}_samples.png')
 
     # Train Flow4Flow
     f4flow = get_flow4flow(cfg.top_transformer.flow4flow,
