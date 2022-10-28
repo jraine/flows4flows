@@ -90,7 +90,7 @@ def main(cfg: DictConfig) -> None:
     bd_samples = []
     with torch.no_grad():
         for right_cond in (evals := get_data(20).get_default_eval(nevalpoints)):
-            nsamples = int(1e6)
+            nsamples = int(1e5)
             right_cond = torch.Tensor([right_cond]).view(1, -1).to(device)
             plot_data(sampled := base_flow.sample(nsamples, context=right_cond, batch_size=int(1e5)).view(-1, 2),
                       outputpath / f'base_density_{tensor_to_str(right_cond)}.png')

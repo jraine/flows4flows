@@ -103,9 +103,23 @@ def plot_arrays(dict_of_data, sv_dir, sv_nm, colors=None):
     # df.to_csv(sv_dir / f'{sv_nm}.csv', index=False)
 
 
-def no_ticks(ax):
+def no_tick_labels(ax):
     ax.set_yticklabels([])
     ax.set_xticklabels([])
+
+
+def add_2d_hist(ax, data, bins=50, clip_val=4):
+    """Plot 2d histograms with zeros in white."""
+    count, xbins, ybins = np.histogram2d(data[:, 0], data[:, 1], bins=bins)
+    count[count == 0] = np.nan
+    if clip_val is None:
+        clip_val = np.nanquantile(count, 0.01)
+    ax.imshow(count.T,
+              origin='lower', aspect='auto',
+              extent=[xbins.min(), xbins.max(), ybins.min(), ybins.max()],
+              vmin=clip_val
+              )
+    set_bounds(ax, clip_val)
 
 
 def plot_grid(grid, columns, nm, n_points=int(1e4)):
@@ -127,9 +141,9 @@ def plot_grid(grid, columns, nm, n_points=int(1e4)):
     inps = np.unique(inps)
     trgts = np.unique(trgts)
 
-    def add_2d_hist(axis, data):
-        axis.hist2d(data[:, 0], data[:, 1], bins=256)
-        set_bounds(axis)
+    # def add_2d_hist(axis, data):
+    #     axis.hist2d(data[:, 0], data[:, 1], bins=256)
+    #     set_bounds(axis)
 
     N_inputs = len(inps)
     N_targets = len(trgts)
@@ -169,7 +183,7 @@ def add_color_axis(ax, df, columns, colors=None, bins=200, clip_val=4):
         img = make_colormap()
         colors = assign_colors(img, data)
     add_scatter(ax, data, colors, n_bins=bins, clip_val=clip_val)
-    no_ticks(ax)
+    no_tick_labels(ax)
     return colors
 
 
@@ -206,17 +220,3 @@ def conditional_color_grid(data_path, keys, nm, clip_val=4):
     fig.savefig(nm)
     plt.close(fig)
     plt.rcParams['text.usetex'] = False
-
-
-def add_2d_hist(ax, data, bins=50, clip_val=4):
-    """Plot 2d histograms with zeros in white."""
-    count, xbins, ybins = np.histogram2d(data[:, 0], data[:, 1], bins=bins)
-    count[count == 0] = np.nan
-    if clip_val is None:
-        clip_val = np.nanquantile(count, 0.01)
-    ax.imshow(count.T,
-              origin='lower', aspect='auto',
-              extent=[xbins.min(), xbins.max(), ybins.min(), ybins.max()],
-              vmin=clip_val
-              )
-    set_bounds(ax, clip_val)
