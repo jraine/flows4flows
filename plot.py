@@ -2,7 +2,7 @@ import matplotlib
 import pandas as pd
 import torch
 
-from utils import get_numpy_data
+from utils import get_numpy_data, get_cond_numpy_data
 
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
@@ -206,3 +206,17 @@ def conditional_color_grid(data_path, keys, nm, clip_val=4):
     fig.savefig(nm)
     plt.close(fig)
     plt.rcParams['text.usetex'] = False
+
+
+def add_2d_hist(ax, data, bins=50, clip_val=4):
+    """Plot 2d histograms with zeros in white."""
+    count, xbins, ybins = np.histogram2d(data[:, 0], data[:, 1], bins=bins)
+    count[count == 0] = np.nan
+    if clip_val is None:
+        clip_val = np.nanquantile(count, 0.01)
+    ax.imshow(count.T,
+              origin='lower', aspect='auto',
+              extent=[xbins.min(), xbins.max(), ybins.min(), ybins.max()],
+              vmin=clip_val
+              )
+    set_bounds(ax, clip_val)

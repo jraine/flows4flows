@@ -81,6 +81,15 @@ def get_conditional_data(conditional_type, base_name, num_points, *args, **kwarg
     return data_wrapper(base_data)
 
 
+def get_cond_numpy_data(condition_type, name, n_points, condition=None):
+    data_obj = get_conditional_data(condition_type, name, n_points)
+    if condition is None:
+        data = data_obj.data
+        return tensor2numpy(data)
+    else:
+        return data_obj._get_conditional(condition)[0]
+
+
 def set_penalty(f4flow, penalty, weight, anneal=False):
     if penalty not in ['None', None]:
         if penalty == 'l1':
