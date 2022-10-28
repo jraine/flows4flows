@@ -1,5 +1,6 @@
 import matplotlib
 import pandas as pd
+import torch
 
 from utils import get_numpy_data
 
@@ -21,9 +22,20 @@ def assign_colors(img, input_data):
     return img[color_ind[0], color_ind[1]]
 
 
-def add_scatter(ax, data, colors, s=0.1):
-    dt = tensor2numpy(data)
-    ax.scatter(dt[:, 0], dt[:, 1], s=s, c=colors / 256, alpha=0.8)
+def add_scatter(ax, data, colors, n_bins=200, clip_val=4):
+    data = tensor2numpy(data)
+    pixelated = np.zeros((n_bins, n_bins, 3))
+    bns = np.linspace(-clip_val, clip_val, n_bins + 1)
+    for i in range(3):
+        pixelated[..., i] = binned_statistic_2d(data[:, 0], data[:, 1], colors[:, i],
+                                                bins=bns)[0]
+    # Set nan pixels to white
+    pixelated[np.isnan(pixelated).any(-1)] = 255
+    ax.imshow(pixelated / 255,
+              origin='lower', aspect='auto',
+              extent=[0, 1, 0, 1],
+              vmin=0.01
+              )
 
 
 def make_colormap(plt=False):
@@ -91,6 +103,11 @@ def plot_arrays(dict_of_data, sv_dir, sv_nm, colors=None):
     # df.to_csv(sv_dir / f'{sv_nm}.csv', index=False)
 
 
+def no_ticks(ax):
+    ax.set_yticklabels([])
+    ax.set_xticklabels([])
+
+
 def plot_grid(grid, columns, nm, n_points=int(1e4)):
     """
     Plot a grid of figures showing inputs to outputs
@@ -144,3 +161,48 @@ def plot_grid(grid, columns, nm, n_points=int(1e4)):
 
     fig.tight_layout()
     fig.savefig(nm)
+
+
+def add_color_axis(ax, df, columns, colors=None, bins=200, clip_val=4):
+    data = torch.Tensor(df[columns].to_numpy())
+    if colors is None:
+        img = make_colormap()
+        colors = assign_colors(img, data)
+    add_scatter(ax, data, colors, n_bins=bins, clip_val=clip_val)
+    no_ticks(ax)
+    return colors
+
+
+def conditional_color_grid(data_path, keys, nm, clip_val=4):
+    plt.rcParams['text.usetex'] = True
+    N_inputs = 2
+    N_targets = len(keys) + 1
+
+    # Add one because we want to plot the data around the perimeter.
+    fig, ax = plt.subplots(N_inputs, N_targets,
+                           figsize=(5 * (N_targets), 5 * N_inputs))
+
+    if ax.ndim == 1:
+        ax = ax[np.newaxis, ...]
+
+    # Plot the input distributions
+    df = pd.read_hdf(data_path, key=keys[0])
+    colors = add_color_axis(ax[0, 0], df, ['input_x', 'input_y'])
+    add_color_axis(ax[1, 0], df, ['input_x', 'input_y'], colors=colors, clip_val=clip_val)
+    ax[0, 0].set_title('Input Data', fontsize=40)
+    ax[0, 0].set_ylabel('Flow4Flow', fontsize=40)
+    ax[1, 0].set_ylabel('Base Distribution', fontsize=40)
+
+    for j, key in enumerate(keys):
+        df = pd.read_hdf(data_path, key=key)
+        # flow for flow
+        add_color_axis(ax[0, j + 1], df, ['transformed_x', 'transformed_y'], colors=colors, clip_val=clip_val)
+        # BD transfer
+        add_color_axis(ax[1, j + 1], df, ['base_transfer_x', 'base_transfer_y'], colors=colors, clip_val=clip_val)
+        rotation = float(key.split('_', 1)[-1].replace('_', '.')) * 45
+        ax[0, j + 1].set_title(fr'${rotation:.0f}^\circ$', fontsize=40)
+
+    fig.tight_layout()
+    fig.savefig(nm)
+    plt.close(fig)
+    plt.rcParams['text.usetex'] = False
