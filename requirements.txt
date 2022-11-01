@@ -1,0 +1,6 @@
+nflows==0.14
+omegaconf==2.2.3
+hydra-core==1.2.0
+torch==1.8.0
+numpy==1.19.2
+matplotlib==3.6.1

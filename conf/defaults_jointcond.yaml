@@ -1,0 +1,20 @@
+defaults:  
+  - _self_  
+  - base_dist: defaults
+  - top_transformer: defaults
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled  
+
+output:
+  save_dir: ./flows4flows/
+  name: test
+
+general:
+  data_dim: 2
+  ncond: 1
+  npoints: 1e6
+
+hydra:  
+  output_subdir: null  
+  run:  
+    dir: .
