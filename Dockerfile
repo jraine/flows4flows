@@ -1,6 +1,6 @@
 ARG TORCH_VERSION=latest
 
-FROM pytorch/pytorch:${TORCH_VERSION}#this will get replaced in the ci though
+FROM pytorch/pytorch:${TORCH_VERSION}
 
 USER root
 RUN apt-get -qq -y update && \
