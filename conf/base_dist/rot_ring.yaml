@@ -1,0 +1,15 @@
+data: Rings
+condition: Rotation
+load_path: None
+batch_size: 128
+lr: 1e-4
+nepochs: 32
+gclip: 5
+nstack: 4
+nblocks: 2
+nnodes: 128
+nbins: 8
+activation: relu
+coupling: False
+coupling_width: 32
+coupling_depth: 2

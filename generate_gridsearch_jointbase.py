@@ -43,9 +43,9 @@ def main():
     flow4flow = ["'delta'",
                  "'concat'"]
 
-    hpo.add_opt('base_dist.base_data', data, True)
-    hpo.add_opt('base_dist.condition', cond, True)
-    hpo.add_opt('top_transformer.flow4flow', flow4flow, True)
+    hpo.add_opt('base_dist.base_data', data, True, 'data')
+    hpo.add_opt('base_dist.condition', cond, True, 'condition')
+    hpo.add_opt('top_transformer.flow4flow', flow4flow, True, 'f4f')
 
     hpo.add_script_line('export XDG_RUNTIME_DIR=""')
     hpo.add_script_line('module load GCC/9.3.0 Singularity/3.7.3-Go-1.14', lastline=True)
