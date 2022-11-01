@@ -36,3 +36,8 @@ base_flow = fff.BaseFlow(transforms.CompositeTransform(transform_list_base),
 f4flow = fff.DeltaFlowForFlow(transforms.CompositeTransform(transform_list_f4f),
                                base_flow)
 ```
+
+## Contact
+
+[Sam Klein](https://github.com/sambklein) &
+[Johnny Raine](https://github.com/jraine)
