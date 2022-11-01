@@ -6,7 +6,7 @@ from torch import nn
 
 
 class BasePenalty(nn.Module):
-
+    """Base class for distance penalty terms for FlowForFlow model"""
     def __init__(self, weight=0.0):
         super(BasePenalty, self).__init__()
         self.register_buffer('weight', torch.Tensor([weight]))
@@ -15,11 +15,17 @@ class BasePenalty(nn.Module):
         return 0
 
     def forward(self, inputs, outputs):
+        """Return calculation of distance penalty with gradients"""
         return self.weight * self.penalty_function(inputs, outputs)
 
 
 class CustomPenalty(BasePenalty):
+    """Custom class for distance penalty for FlowForFlow model"""
     def __init__(self, lambda_func, weight=1.0):
+        """Create a custom distance penalty with lambda function.
+        Inputs
+            lambda_func: lambda function for distance penalty
+            weight: relative weight for penalty term in total loss"""
         self.lambda_fn = lambda_func
         super(CustomPenalty, self).__init__(weight)
 
@@ -28,8 +34,12 @@ class CustomPenalty(BasePenalty):
 
 
 class WrapPytorchPenalty(BasePenalty):
-
+    """Wrapper class for distance penalty from any predefined pytorch method for FlowForFlow model"""
     def __init__(self, pytorch_method, weight):
+        """Create a distance penalty class from a pytorch method
+        Inputs
+            pytorch_method: PyTorch function for distance penalty
+            weight: relative weight for penalty term in total loss"""
         super(WrapPytorchPenalty, self).__init__(weight)
         self.torch_penalty = pytorch_method(reduction='none')
 
@@ -38,20 +48,31 @@ class WrapPytorchPenalty(BasePenalty):
 
 
 class LOnePenalty(WrapPytorchPenalty):
-
+    """L1 distance penalty clas for FlowForFlow models"""
     def __init__(self, weight):
+        """Create a L1 distance penalty term
+        Inputs
+            weight: relative weight for penalty term in total loss"""
         super(LOnePenalty, self).__init__(nn.L1Loss, weight)
 
 
 class LTwoPenalty(WrapPytorchPenalty):
-
+    """L2 distance penalty class for FlowForFlow model"""
     def __init__(self, weight):
+        """Create a L2 distance penalty term
+        Inputs
+            weight: relative weight for penalty term in total loss"""
         super(LTwoPenalty, self).__init__(nn.MSELoss, weight)
 
 
 class AnnealedPenalty(BasePenalty):
-
+    """Annealing weight for distance penalty class"""
     def __init__(self, penalty, n_steps=None, min_weight=0):
+        """Create an annealing distance penalty term
+        Inputs
+            penalty: Distance penalty class
+            n_steps: How many steps in the training of the flow
+            min_weight minimum value for weight of distance penalty class"""
         super(AnnealedPenalty, self).__init__()
         self.min_weight = min_weight
         self.penalty_to_wrap = penalty

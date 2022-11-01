@@ -15,6 +15,7 @@ setup(
     description="Flows for flows in PyTorch",
     author="Sam Klein, John Raine",
     license="MIT",
+    package=['ffflows'],
     install_requires=[
         "numpy",
         "torch",

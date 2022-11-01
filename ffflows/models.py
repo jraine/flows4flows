@@ -32,6 +32,7 @@ class FlowForFlow(abc.ABC, flows.Flow):
         self.distance_object = BasePenalty()
 
     def add_penalty(self, penalty_object):
+        """Add a distance penaly object to the class."""
         assert isinstance(penalty_object, BasePenalty)
         self.distance_object = penalty_object
 
@@ -47,6 +48,7 @@ class FlowForFlow(abc.ABC, flows.Flow):
         return None
 
     def direction_func(self, input_context, target_context=None):
+        """Function to call the defined direction function given the input and target conditions."""
         if input_context is None:
             return None
         else:
@@ -112,6 +114,14 @@ class FlowForFlow(abc.ABC, flows.Flow):
         return outputs, logabsdet
 
     def batch_transform(self, inputs, input_context=None, target_context=None, inverse=False, batch_size=None):
+        """Transform inputs with transformer given context, with a batch at a time.
+        Inputs:
+            inputs: Input Tensor for transformer
+            input_context: Context tensor for samples from left of transformer
+            target_context: Context tensor for samples from right of transformer. If None and left is set, uses left
+            inverse: In absense of context tensors, specifies if forward or inverse pass of transformer, and thus left
+            or right base density. Default False (forward) Choose forward (defualt) or inverse (set to true) pass.
+            batch_size: number of data to transform at a time"""
         if batch_size is None:
             return self.transform(inputs, input_context, target_context, inverse)
         else:
@@ -179,7 +189,7 @@ class FlowForFlow(abc.ABC, flows.Flow):
 
 
 class NoContextFlowForFlow(FlowForFlow):
-
+    """FlowForFlow without any context"""
     def context_func(self, x, y):
         return torch.zeros_like(x)
 
@@ -188,7 +198,7 @@ class NoContextFlowForFlow(FlowForFlow):
 
 
 class DeltaFlowForFlow(FlowForFlow):
-
+    """FlowForFlow with context defined as difference between input and target context"""
     def context_func(self, x, y):
         return y - x
 
@@ -197,7 +207,7 @@ class DeltaFlowForFlow(FlowForFlow):
 
 
 class ConcatFlowForFlow(FlowForFlow):
-
+    """FlowForFlow with context defined as concatenation of input and target context"""
     def context_func(self, x, y):
         return torch.cat([x, y], axis=-1)
 
@@ -206,7 +216,7 @@ class ConcatFlowForFlow(FlowForFlow):
 
 
 class DiscreteBaseFlowForFlow(FlowForFlow):
-
+    """FlowForFlow with two base distributions and no context"""
     def context_func(self, x, y=None):
         return None
 
@@ -215,7 +225,7 @@ class DiscreteBaseFlowForFlow(FlowForFlow):
 
 
 class DiscreteBaseConditionFlowForFlow(FlowForFlow):
-
+    """FlowForFlow with two base distributions and a shared context value"""
     def context_func(self, x, y=None):
         return x
 
@@ -231,5 +241,14 @@ class BaseFlow(flows.Flow):
     '''
 
     def log_prob(self, inputs, context=None, input_context=None, target_context=None, inverse=False):
+        '''
+        log probability of transformed inputs given context, using standard base distribution.
+        Inputs:
+            inputs: Input Tensor for transformer.
+            input_context: Context tensor for samples.
+            context: Context tensor for samples if input_context is not defined.
+            target_context: Ignored. Exists for interoperability with FLow4Flow models.
+            inverse: Ignored. Exists for interoperability with Flow4Flow models.
+        '''
         context = input_context if input_context is not None else context
         return super(BaseFlow, self).log_prob(inputs, context=context)

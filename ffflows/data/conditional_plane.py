@@ -1,3 +1,5 @@
+"""Wrapper classes for conditional plane datasets"""
+
 import torch
 from nflows.utils import tensor2numpy
 
