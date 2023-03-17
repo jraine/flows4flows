@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=40.6.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ffflows"
+version = "0.1.0"
+authors = [
+    {name="Samuel Klein"},
+    {name="Johnny Raine"},
+]
+description = "Flows for flows package, for training normalizing flows between arbitrary distributions"
+license = {text = "MIT License"}
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "nflows @ git+https://github.com/bayesiains/nflows.git@master",
+    "torch>=1.8.0",
+    "numpy>=1.20.0",
+]
+
+[tool.setuptools]
+packages = ["ffflows"]
+
+[project.optional-dependencies]
+run = ["omegaconf>=2.2.3", "hydra-core>=1.2.0"]
