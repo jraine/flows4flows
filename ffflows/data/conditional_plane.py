@@ -1,6 +1,7 @@
 """Wrapper classes for conditional plane datasets"""
 
 import torch
+from torch.utils.data import Dataset
 from nflows.utils import tensor2numpy
 
 from ffflows.data.plane import PlaneDataset
@@ -53,7 +54,21 @@ class ConditionalWrapper(ConditionalPlaneDataset):
     def get_default_eval(self, n_test):
         """Set the data to some default condition and return a set of default points."""
         return torch.linspace(0, 1, n_test)
+    
+    
+class ConditionalDataset(Dataset):
+    def __init__(self, data, conditions):
+        self.data = data
+        self.conditions = conditions
 
+    def __getitem__(self, item):
+        return self.data[item], self.conditions[item]
+    
+    def __len__(self):
+        return self.data.shape[0]
+        
+    def get_tuple(self):
+        return self.data, self.conditions
 
 class RotatedData(ConditionalWrapper):
 

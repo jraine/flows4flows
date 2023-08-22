@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from nflows.distributions import StandardNormal
 
-from utils import get_activation, get_data, get_flow4flow, train, spline_inn, get_conditional_data, tensor_to_str, \
+from utils import get_activation, get_flow4flow, train, spline_inn, get_conditional_data, tensor_to_str, \
     set_penalty, get_flow4flow_ncond, dump_to_df
 from plot import plot_data, plot_arrays
 
