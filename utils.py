@@ -10,7 +10,8 @@ from ffflows.models import DeltaFlowForFlow, ConcatFlowForFlow, DiscreteBaseFlow
     DiscreteBaseConditionFlowForFlow, NoContextFlowForFlow
 from ffflows.data.plane import ConcentricRings, FourCircles, CheckerboardDataset, TwoSpiralsDataset, Star, \
     Anulus
-from ffflows.data.conditional_plane import RotatedData, RadialScale, ElipseShift
+from ffflows.data.conditional_plane import RotatedData, RadialScale, ElipseShift, ConditionalDataset
+from ffflows.identity_init_transforms import MaskedPiecewiseRationalQuadraticAutoregressiveTransformIdentInit
 from ffflows.utils import shuffle_tensor
 
 from nflows import transforms
@@ -80,6 +81,15 @@ def get_conditional_data(conditional_type, base_name, num_points, *args, **kwarg
     }[conditional_type.lower()]
     return data_wrapper(base_data)
 
+def get_lhco_data(path_features,path_conds=None, ncond=1):
+    features = torch.from_numpy(np.load(path_features)).to(torch.float32)
+    if path_conds is None:
+        conds = features[:,-ncond:]
+        features = features[:,:-ncond]
+    else:
+        conds = torch.from_numpy(np.load(path_conds)).to(torch.float32)
+        
+    return ConditionalDataset(features,conds)
 
 def get_cond_numpy_data(condition_type, name, n_points, condition=None):
     data_obj = get_conditional_data(condition_type, name, n_points)
@@ -130,16 +140,17 @@ def get_flow4flow(name, *args, **kwargs):
 
 
 def spline_inn(inp_dim, nodes=128, num_blocks=2, num_stack=3, tail_bound=3.5, tails='linear', activation=F.relu, lu=0,
-               num_bins=10, context_features=None, flow_for_flow=False):
+               num_bins=10, context_features=None, flow_for_flow=False, identity_init = False):
     transform_list = []
     for i in range(num_stack):
         transform_list += [
-            transforms.MaskedPiecewiseRationalQuadraticAutoregressiveTransform(inp_dim, nodes,
-                                                                               num_blocks=num_blocks,
-                                                                               tail_bound=tail_bound,
-                                                                               num_bins=num_bins,
-                                                                               tails=tails, activation=activation,
-                                                                               context_features=context_features)]
+            MaskedPiecewiseRationalQuadraticAutoregressiveTransformIdentInit(inp_dim, nodes,
+                                                                             num_blocks=num_blocks,
+                                                                             tail_bound=tail_bound,
+                                                                             num_bins=num_bins,
+                                                                             tails=tails, activation=activation,
+                                                                             context_features=context_features,
+                                                                             identity_init=identity_init)]
         if lu:
             transform_list += [transforms.LULinear(inp_dim)]
         else:
@@ -249,18 +260,18 @@ def train_batch_iterate(model, train_data, val_data, n_epochs, learning_rate, nc
         for step, pairdata in enumerate(train_data):
             model.train()
             if step % 2 == 0 + 1 * int(inverse):
-                data = pairdata[0].to(device)
+                data = pairdata[0]
                 inv = False
             else:
-                data = pairdata[1].to(device)
+                data = pairdata[1]
                 inv = True
 
             optimizer.zero_grad()
             if ncond is not None:
-                inputs, context_l, context_r = data[ddir][0].to(device), data[ddir][1].to(device), data[ddir][2].to(
+                inputs, context_l, context_r = data[0].to(device), data[1].to(device), data[ddir][2].to(
                     device)
                 if rand_perm_target:
-                    context_r = shuffle_tensor(context_l)
+                    context_r = shuffle_tensor(context_r)
             else:
                 inputs, context_l, context_r = data.to(device), None, None
 

@@ -52,7 +52,8 @@ class FlowForFlow(abc.ABC, flows.Flow):
         if input_context is None:
             return None
         else:
-            return self._direction_func(input_context, target_context).view(-1)
+            direct = self._direction_func(input_context, target_context)
+            return direct.view(-1) if direct is not None else direct
 
     def set_forward_base(self):
         '''Just in case we need to change the base distribution in the subclass'''
@@ -155,7 +156,7 @@ class FlowForFlow(abc.ABC, flows.Flow):
         order = self.direction_func(input_context, target_context)
         if order is None:
             base_flow = self.base_flow_right if inverse is False else self.base_flow_left
-            log_prob = base_flow.log_prob(noise)
+            log_prob = base_flow.log_prob(noise, context=input_context)
         else:
             log_prob = torch.zeros(len(noise)).to(noise)
             for base_flow, mx in zip([self.base_flow_left, self.base_flow_right], [order, ~order]):
